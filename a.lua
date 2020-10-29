@@ -18,14 +18,19 @@ us={
   zoomed=false,
   playing=false,
   message='',
+  waveform_samples={},
+  interval=0,
 }
 
 -- user parameters
 -- don't put things here that can be put into global parameters
 up={
+  filename='',
+  start=0,
+  length=0,
   samples={},
   patterns={},
-  chain={},
+  chain={1,0,0,0,0,0,0,0,0,0},
 }
 
 -- user constants
@@ -37,6 +42,14 @@ uc={
 --
 
 function init()
+  for i=1,9 do
+    up.samples[i]={}
+    up.samples[i].start=0
+    up.samples[i].length=0
+    up.patterns[i]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
+  end
+  
+  -- update clocks
   clock.run(update_beat)
   
   -- initialize timer for updating screen
@@ -50,6 +63,10 @@ end
 --
 -- updaters
 --
+
+function update_waveform()
+  softcut.render_buffer(buffer,winstart,winend-winstart,128)
+end
 
 function update_timer()
   if us.update_ui then
@@ -77,9 +94,11 @@ end
 --
 
 function enc(n,d)
+  
 end
 
 function key(n,z)
+  
 end
 
 --
