@@ -181,14 +181,13 @@ end
 
 function load_file(file)
   softcut.buffer_clear_region(1,-1)
-  selecting=false
   if file~="cancel" then
     local ch,samples,samplerate=audio.file_info(file)
-    loop_info.rate=samplerate/48000.0 -- compensate for files that aren't 48Khz
-    loop_info.duration=samples/48000.0
-    softcut.buffer_read_mono(file,0,1,-1,1,1)
-    return true,length,rate
+    rate=samplerate/48000.0 -- compensate for files that aren't 48Khz
+    duration=samples/48000.0
+    softcut.buffer_read_mono(file,0,0,-1,1,1)
+    return true,duration,rate
   else
-    return false,0
+    return false,0,1
   end
 end
