@@ -1,174 +1,160 @@
--- Beets
--- 1.1.1 @mattbiddulph
+-- ??? v0.1.0
+-- sampler sequencer
 --
--- Probabilistic performance
--- drum loop re-sequencer
+-- llllllll.co/t/?
 --
--- Put one-bar WAVs in folders
--- in dust/audio/beets
 --
--- K2 : Quantized mute toggle
--- K3 : Instant mute while held
 --
--- Use a Grid, or map
--- MIDI controller to params
+--    ▼ instructions below ▼
+
 --
--- thanks to @vcvcvc_val
--- for demo loops!
+-- globals
+--
 
-local ENABLE_CROW=false -- not finished, and may stomp over clock Crow controls if enabled
+-- user state
+us={
+  mode=0,-- 0=sampler,1=pattern,2==chain
+  update_ui=false,
+  zoomed=false,
+  playing=false,
+  message='',
+}
 
-local Beets=include('lib/libbeets')
-local beets_audio_dir=_path.audio..'beets'
+-- user parameters
+-- don't put things here that can be put into global parameters
+up={
+  samples={},
+  patterns={},
+  chain={},
+}
 
-local Passthrough=include('lib/passthrough')
-local Arcify=include('lib/arcify')
-local arcify=Arcify.new()
+-- user constants
+uc={
+  update_timer_interval=0.05,
+}
+--
+-- initialization
+--
 
-local beets=Beets.new {softcut_voice_id=1}
-local beets2=Beets.new {softcut_voice_id=2}
-
-local editing=false
-local g=grid.connect()
-
-g.key=function(x,y,z)
-  if params:get('orientation')==1 then -- horizontal
-    if x<9 then
-      beets:grid_key(x,y,z)
-    else
-      beets2:grid_key(x-8,y,z)
-    end
-  else
-    if y<9 then
-      beets:grid_key(x,y,z)
-    else
-      beets2:grid_key(x,y-8,z)
-    end
-  end
+function init()
+  clock.run(update_beat)
+  
+  -- initialize timer for updating screen
+  timer=metro.init()
+  timer.time=uc.update_timer_interval
+  timer.count=-1
+  timer.event=update_timer
+  timer:start()
 end
 
-local function init_crow()
-  crow.output[2].action='pulse(0.001, 5, 1)'
-  crow.output[3].action='pulse(0.001, 5, 1)'
-  crow.output[4].action='pulse(0.001, 5, 1)'
-end
+--
+-- updaters
+--
 
-local function beat()
-  while true do
-    clock.sync(1/2)
-    local beatstep=math.floor(clock.get_beats()*2)%8
-    beets:advance_step(beatstep,clock.get_tempo())
-    beets2:advance_step(beatstep,clock.get_tempo())
+function update_timer()
+  if us.update_ui then
     redraw()
-    beets:drawGridUI(g,1,1)
-    if params:get('orientation')==1 then -- horizontal
-      beets2:drawGridUI(g,9,1)
-    else
-      beets2:drawGridUI(g,1,9)
-    end
-    g:refresh()
   end
 end
 
-function redraw()
-  beets:drawUI()
+function update_beat()
+  while true do
+    clock.sync(1/16)
+    if us.playing==false then goto continue end
+    local beatstep=math.floor(clock.get_beats())%16
+    -- TODO: figure out position in chain/pattern/sample
+    -- TODO: add effects
+    ::continue::
+  end
 end
+
+--
+-- sample controls
+--
+
+--
+-- input
+--
 
 function enc(n,d)
-  if editing then
-    beets:enc(n,d)
-  end
 end
 
 function key(n,z)
-  if n==1 and z==1 then
-    editing=true
-    beets:edit_mode_begin()
+end
+
+--
+-- ui
+--
+
+function redraw()
+  us.update_ui=false
+  screen.clear()
+  
+  -- show message if exists
+  if us.message~="" then
+    screen.level(0)
+    x=64
+    y=28
+    w=string.len(us.message)*6
+    screen.rect(x-w/2,y,w,10)
+    screen.fill()
+    screen.level(15)
+    screen.rect(x-w/2,y,w,10)
+    screen.stroke()
+    screen.move(x,y+7)
+    screen.text_center(us.message)
   end
-  if editing then
-    if n==1 and z==0 then
-      editing=false
-      beets:edit_mode_end()
-    else
-      beets:key(n,z)
-    end
+  
+  screen.update()
+end
+
+--
+-- utils
+--
+function show_message(message)
+  clock.run(function()
+    us.message=message
+    redraw()
+    clock.sleep(0.5)
+    us.message=""
+    redraw()
+  end)
+end
+
+function readAll(file)
+  local f=assert(io.open(file,"rb"))
+  local content=f:read("*all")
+  f:close()
+  return content
+end
+
+function calculate_lfo(current_time,period,offset)
+  if period==0 then
+    return 1
   else
-    if n==1 and z==1 then
-      editing=true
-      beets:show_edit_screen()
-    end
-    if n==2 and z==0 then
-      beets:toggle_mute()
-    end
-    if n==3 then
-      beets:instant_toggle_mute()
-    end
+    return math.sin(2*math.pi*current_time/period+offset)
   end
 end
 
-function init_beets_dir()
-  if util.file_exists(beets_audio_dir)==false then
-    util.make_dir(beets_audio_dir)
-    local demodir=_path.code..'beets/demo-loops'
-    if util.file_exists(demodir) then
-      for _,dirname in ipairs(util.scandir(demodir)) do
-        local from_dir=demodir..'/'..dirname
-        local to_dir=beets_audio_dir..'/'..dirname
-        util.make_dir(to_dir)
-        util.os_capture('cp '..from_dir..'* '..to_dir)
-      end
-    end
+function round(x)
+  return x>=0 and math.floor(x+0.5) or math.ceil(x-0.5)
+end
+
+function sign(x)
+  if x>0 then
+    return 1
+  elseif x<0 then
+    return-1
+  else
+    return 0
   end
 end
 
-function init()
-  init_beets_dir()
-
-  params:add_separator('BEETS')
-
-  audio.level_cut_rev(0)
-
-  beets.on_beat=function()
+function round_time_to_nearest_beat(t)
+  seconds_per_qn=60/clock.get_tempo()
+  remainder=t%seconds_per_qn
+  if remainder==0 then
+    return t
   end
-  if ENABLE_CROW then
-    beets.on_beat_one=function()
-      crow.output[2]()
-    end
-    beets.on_kick=function()
-      crow.output[3]()
-    end
-    beets.on_snare=function()
-      crow.output[4]()
-    end
-  end
-
-  params:add {
-    type='option',
-    id='orientation',
-    name='Grid orientation',
-    options={'horizontal','vertical'},
-    action=function(val)
-      if val==1 then
-        g:rotation(0)
-      else
-        g:rotation(3)
-      end
-      g:all(0) -- clear the grid for a full redraw after orientation change
-    end
-  }
-
-  beets:add_params(arcify)
-  beets2:add_params(arcify)
-
-  params:add_separator('UTILITIES')
-  Passthrough.init()
-  arcify:add_params()
-
-  clock.run(beat)
-  if ENABLE_CROW then
-    init_crow()
-  end
-
-  beets:start()
-  beets2:start()
+  return t+seconds_per_qn-remainder
 end
