@@ -65,6 +65,7 @@ end
 --
 
 function update_waveform()
+  -- https://github.com/monome/softcut-studies/blob/master/8-copy.lua
   softcut.render_buffer(buffer,winstart,winend-winstart,128)
 end
 
