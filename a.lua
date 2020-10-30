@@ -57,7 +57,7 @@ function init()
   -- determine which files are available
   -- us.available_files={'amenbreak.wav'}
   -- us.available_saves={''}
-  
+
   -- parameters
   -- params:add {
   --   type='option',
@@ -100,7 +100,7 @@ function init()
   --     update_parameters()
   --   end
   -- }
-  
+
   -- initialize softcut
   for i=1,2 do
     softcut.enable(i,1)
@@ -113,7 +113,7 @@ function init()
     softcut.position(i,0)
   end
   softcut.event_render(update_render)
-  
+
   -- initialize samples
   for i=1,9 do
     up.samples[i]={}
@@ -121,17 +121,17 @@ function init()
     up.samples[i].length=0
     up.patterns[i]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
   end
-  
+
   -- update clocks
   clock.run(update_beat)
-  
+
   -- initialize timer for updating screen
   timer=metro.init()
   timer.time=uc.update_timer_interval
   timer.count=-1
   timer.event=update_timer
   timer:start()
-  
+
   up.filename=uc.code_dir..'sounds/amen.wav'
   load_sample()
   up.samples[1]={start=0.3,length=0.2}
@@ -170,7 +170,7 @@ function update_beat()
 end
 
 function update_parameters()
-  
+
 end
 
 function update_waveform_view(pos1,pos2)
@@ -190,13 +190,13 @@ function load_sample()
 end
 
 function sample_one_shot()
-  local s = up.samples[us.sample_cur].start
-  local e = up.samples[us.sample_cur].start + up.samples[us.sample_cur].length
+  local s=up.samples[us.sample_cur].start
+  local e=up.samples[us.sample_cur].start+up.samples[us.sample_cur].length
   clock.run(function()
-    us.samples_playing = {s,e}
+    us.samples_playing={s,e}
     redraw()
     clock.sleep(e-s)
-    us.samples_playing = {0,0}
+    us.samples_playing={0,0}
     redraw()
   end)
   softcut.rate(2,up.rate*clock.get_tempo()/up.bpm)
@@ -211,8 +211,8 @@ end
 --
 
 function enc(n,d)
-  if n==1 then 
-    us.sample_cur = util.clamp(us.sample_cur+sign(d),1,9)
+  if n==1 then
+    us.sample_cur=util.clamp(us.sample_cur+sign(d),1,9)
   elseif n==2 then
     up.samples[us.sample_cur].start=util.clamp(up.samples[us.sample_cur].start+d/1000,us.waveform_view[1],us.waveform_view[2])
   elseif n==3 then
@@ -243,35 +243,35 @@ end
 function redraw()
   us.update_ui=false
   screen.clear()
-  
+
   -- check shift
   local shift_amount=0
   if us.shift then
     shift_amount=4
   end
-  
+
   -- show sample info
   screen.level(15)
   screen.rect(1,1,7,8)
   screen.stroke()
-  isone = 0
+  isone=0
   if us.sample_cur==1 then
-    isone = 1
+    isone=1
   end
   screen.move(2+isone,7)
   screen.text(us.sample_cur)
-  
+
   -- show pattern info
   screen.level(4)
   screen.rect(10,1,7,8)
   screen.stroke()
-  isone = 0
+  isone=0
   if us.pattern_cur==1 then
-    isone = 1
+    isone=1
   end
   screen.move(11+isone,7)
   screen.text(us.pattern_cur)
-  
+
   -- show chain info
   for i=1,#up.chain do
     if i==3 then
@@ -279,38 +279,38 @@ function redraw()
     else
       screen.level(4)
     end
-    if up.chain[i] > 0 then
-      isone = 0
+    if up.chain[i]>0 then
+      isone=0
       if up.chain[i]==1 then
-        isone = 1
+        isone=1
       end
       screen.move(19+(i-1)*7+isone,7)
       screen.text(up.chain[i])
     end
   end
-  
+
   -- show pattern
-  local p = up.patterns[us.pattern_cur]
+  local p=up.patterns[us.pattern_cur]
   for i=1,16 do
     screen.level(4)
-    if p[i]==us.sample_cur then 
+    if p[i]==us.sample_cur then
       screen.level(15)
     end
-    if p[i] ~= 0 then 
-      if i > 1 and p[i-1]==p[i] then 
-        if i < 16 and p[i+1]==p[i] then 
+    if p[i]~=0 then
+      if i>1 and p[i-1]==p[i] then
+        if i<16 and p[i+1]==p[i] then
           screen.rect(1+(i-1)*8,13,8,5)
         else
           screen.rect(1+(i-1)*8,13,7,5)
         end
       else
-        isone = 0
+        isone=0
         if p[i]==1 then
-          isone = 1
+          isone=1
         end
         screen.move(1+(i-1)*8+isone,18)
         screen.text(p[i])
-        if i < 16 and p[i+1]==p[i] then 
+        if i<16 and p[i+1]==p[i] then
           screen.rect(6+(i-1)*8,13,3,5)
         else
           screen.rect(6+(i-1)*8,13,2,5)
@@ -321,7 +321,7 @@ function redraw()
     end
     screen.fill()
   end
-  
+
   -- plot waveform
   -- https://github.com/monome/softcut-studies/blob/master/8-copy.lua
   if #us.waveform_samples>0 then
@@ -331,7 +331,7 @@ function redraw()
     for i,s in ipairs(us.waveform_samples) do
       local height=util.round(math.abs(s)*scale)
       local current_time=util.linlin(0,128,us.waveform_view[1],us.waveform_view[2],x_pos)
-      if current_time > us.samples_playing[1] and current_time < us.samples_playing[2] then 
+      if current_time>us.samples_playing[1] and current_time<us.samples_playing[2] then
         screen.level(15)
       else
         screen.level(4)
@@ -366,7 +366,7 @@ function redraw()
     end
     screen.stroke()
   end
-  
+
   -- show message if exists
   if us.message~="" then
     screen.level(0)
@@ -381,7 +381,7 @@ function redraw()
     screen.move(x,y+7)
     screen.text_center(us.message)
   end
-  
+
   screen.update()
 end
 
