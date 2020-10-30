@@ -27,8 +27,8 @@ us={
   scale=0,
   sample_cur=1,
   pattern_cur=1,
+  samples_playing={0,0},
 }
-
 -- user parameters
 -- put things that can be saved
 -- don't put things here that can be put into global parameters
@@ -37,9 +37,10 @@ up={
   filename='',
   length=0,
   rate=1,
+  bpm=0,
   samples={},
   patterns={},
-  chain={1,0,0,0,0,0,0,0,0,0},
+  chain={1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
 }
 
 -- user constants
@@ -101,6 +102,16 @@ function init()
   -- }
   
   -- initialize softcut
+  for i=1,2 do
+    softcut.enable(i,1)
+    softcut.level(i,1)
+    softcut.pan(i,0)
+    softcut.rate(i,1)
+    softcut.loop(i,0)
+    softcut.rec(i,0)
+    softcut.buffer(i,1)
+    softcut.position(i,0)
+  end
   softcut.event_render(update_render)
   
   -- initialize samples
@@ -108,7 +119,7 @@ function init()
     up.samples[i]={}
     up.samples[i].start=0
     up.samples[i].length=0
-    up.patterns[i]={}
+    up.patterns[i]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
   end
   
   -- update clocks
@@ -123,6 +134,13 @@ function init()
   
   up.filename=uc.code_dir..'sounds/amen.wav'
   load_sample()
+  up.samples[1]={start=0.3,length=0.2}
+  up.patterns[1][1]=3
+  up.patterns[1][2]=4
+  up.patterns[1][3]=4
+  up.patterns[1][4]=4
+  up.patterns[1][5]=1
+  up.patterns[1][6]=1
 end
 
 --
@@ -158,7 +176,7 @@ end
 function update_waveform_view(pos1,pos2)
   us.waveform_view={pos1,pos2}
   -- render new waveform
-  softcut.render_buffer(1,pos1,pos2,128)
+  softcut.render_buffer(1,pos1,pos2-pos1,128)
 end
 
 --
@@ -167,7 +185,25 @@ end
 function load_sample()
   -- load file
   up.length,up.rate=load_file(up.filename)
+  up.bpm=137
   update_waveform_view(0,up.length)
+end
+
+function sample_one_shot()
+  local s = up.samples[us.sample_cur].start
+  local e = up.samples[us.sample_cur].start + up.samples[us.sample_cur].length
+  clock.run(function()
+    us.samples_playing = {s,e}
+    redraw()
+    clock.sleep(e-s)
+    us.samples_playing = {0,0}
+    redraw()
+  end)
+  softcut.rate(2,up.rate*clock.get_tempo()/up.bpm)
+  softcut.position(2,s)
+  softcut.loop_start(2,s)
+  softcut.loop_end(2,e)
+  softcut.play(2,1)
 end
 
 --
@@ -175,10 +211,13 @@ end
 --
 
 function enc(n,d)
-  if n==2 then
+  if n==1 then 
+    us.sample_cur = util.clamp(us.sample_cur+sign(d),1,9)
+  elseif n==2 then
     up.samples[us.sample_cur].start=util.clamp(up.samples[us.sample_cur].start+d/1000,us.waveform_view[1],us.waveform_view[2])
   elseif n==3 then
-    up.samples[us.sample_cur].length=util.clamp(up.samples[us.sample_cur].length+d/1000,0,us.waveform_view[2]-up.samples[us.sample_cur].start)
+    local x=d*clock.get_beat_sec()/16
+    up.samples[us.sample_cur].length=util.clamp(up.samples[us.sample_cur].length+x,0,us.waveform_view[2]-up.samples[us.sample_cur].start)
   end
   us.update_ui=true
 end
@@ -191,6 +230,9 @@ function key(n,z)
       print("zooming to "..up.samples[us.sample_cur].start..","..up.samples[us.sample_cur].start+up.samples[us.sample_cur].length)
       update_waveform_view(up.samples[us.sample_cur].start,up.samples[us.sample_cur].start+up.samples[us.sample_cur].length)
     end
+  elseif n==3 and z==1 then
+    -- play a sample at curent position
+    sample_one_shot()
   end
 end
 
@@ -202,15 +244,99 @@ function redraw()
   us.update_ui=false
   screen.clear()
   
+  -- check shift
+  local shift_amount=0
+  if us.shift then
+    shift_amount=4
+  end
+  
+  -- show sample info
+  screen.level(15)
+  screen.rect(1,1,7,8)
+  screen.stroke()
+  isone = 0
+  if us.sample_cur==1 then
+    isone = 1
+  end
+  screen.move(2+isone,7)
+  screen.text(us.sample_cur)
+  
+  -- show pattern info
+  screen.level(4)
+  screen.rect(10,1,7,8)
+  screen.stroke()
+  isone = 0
+  if us.pattern_cur==1 then
+    isone = 1
+  end
+  screen.move(11+isone,7)
+  screen.text(us.pattern_cur)
+  
+  -- show chain info
+  for i=1,#up.chain do
+    if i==3 then
+      screen.level(15)
+    else
+      screen.level(4)
+    end
+    if up.chain[i] > 0 then
+      isone = 0
+      if up.chain[i]==1 then
+        isone = 1
+      end
+      screen.move(19+(i-1)*7+isone,7)
+      screen.text(up.chain[i])
+    end
+  end
+  
+  -- show pattern
+  local p = up.patterns[us.pattern_cur]
+  for i=1,16 do
+    screen.level(4)
+    if p[i]==us.sample_cur then 
+      screen.level(15)
+    end
+    if p[i] ~= 0 then 
+      if i > 1 and p[i-1]==p[i] then 
+        if i < 16 and p[i+1]==p[i] then 
+          screen.rect(1+(i-1)*8,13,8,5)
+        else
+          screen.rect(1+(i-1)*8,13,7,5)
+        end
+      else
+        isone = 0
+        if p[i]==1 then
+          isone = 1
+        end
+        screen.move(1+(i-1)*8+isone,18)
+        screen.text(p[i])
+        if i < 16 and p[i+1]==p[i] then 
+          screen.rect(6+(i-1)*8,13,3,5)
+        else
+          screen.rect(6+(i-1)*8,13,2,5)
+        end
+      end
+    else
+      screen.rect(1+(i-1)*8,13,7,5)
+    end
+    screen.fill()
+  end
+  
   -- plot waveform
   -- https://github.com/monome/softcut-studies/blob/master/8-copy.lua
   if #us.waveform_samples>0 then
     screen.level(4)
     local x_pos=0
-    local scale=20
+    local scale=19
     for i,s in ipairs(us.waveform_samples) do
       local height=util.round(math.abs(s)*scale)
-      screen.move(x_pos,45-height)
+      local current_time=util.linlin(0,128,us.waveform_view[1],us.waveform_view[2],x_pos)
+      if current_time > us.samples_playing[1] and current_time < us.samples_playing[2] then 
+        screen.level(15)
+      else
+        screen.level(4)
+      end
+      screen.move(i,45-height)
       screen.line_rel(0,2*height)
       screen.stroke()
       x_pos=x_pos+1
@@ -219,11 +345,23 @@ function redraw()
     for i,s in ipairs(up.samples) do
       if s.start>0 and s.length>0 then
         x_pos=util.linlin(us.waveform_view[1],us.waveform_view[2],1,128,s.start)
-        screen.move(x_pos,25)
-        screen.line_rel(0,64-25)
+        screen.move(x_pos-1,26)
+        screen.text(i)
+        screen.move(x_pos,29)
+        screen.line_rel(0,34)
+        screen.move(x_pos,62)
+        screen.line_rel(3,3)
+        screen.move(x_pos,29)
+        screen.line_rel(3,-3)
         x_pos=util.linlin(us.waveform_view[1],us.waveform_view[2],1,128,s.start+s.length)
-        screen.move(x_pos,25)
-        screen.line_rel(0,64-25)
+        screen.move(x_pos,29)
+        screen.line_rel(0,34)
+        screen.move(x_pos+1,64)
+        screen.text(i)
+        screen.move(x_pos,62)
+        screen.line_rel(-3,3)
+        screen.move(x_pos,29)
+        screen.line_rel(-3,-3)
       end
     end
     screen.stroke()
