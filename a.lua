@@ -7,7 +7,7 @@
 --
 --    ▼ instructions below ▼
 -- K1+K2 toggles sample/pattern/chain mode
--- K1+K3 starts/stops pattern
+-- K1+K3 starts/stops pattern/chain
 -- K2 zooms (sample mode) or patterns (pattern mode)
 -- K3 plays current sample
 -- E1 changes sample (sample+pattern) or pattern (chain)
@@ -36,6 +36,7 @@ us={
   scale=0,
   sample_cur=1,
   pattern_cur=1,
+  chain_cur=1,
   samples_playing={0,0},
 }
 -- user parameters
@@ -293,7 +294,7 @@ function redraw()
 
   -- show chain info
   for i=1,#up.chain do
-    if i==3 then
+    if i==us.chain_cur and us.mode==2 then
       screen.level(15)
     else
       screen.level(4)
@@ -312,7 +313,7 @@ function redraw()
   local p=up.patterns[us.pattern_cur]
   for i=1,16 do
     screen.level(4)
-    if p[i]==us.sample_cur then
+    if p[i]==us.sample_cur and us.mode==1 then
       screen.level(15)
     end
     if p[i]~=0 then
@@ -323,12 +324,8 @@ function redraw()
           screen.rect(1+(i-1)*8,13,7,5)
         end
       else
-        isone=0
-        if p[i]==1 then
-          isone=1
-        end
-        screen.move(1+(i-1)*8+isone,18)
-        screen.text(p[i])
+        screen.move(1+(i-1)*8,18)
+        screen.text(up.samples[p[i]].name)
         if i<16 and p[i+1]==p[i] then
           screen.rect(6+(i-1)*8,13,3,5)
         else
@@ -365,7 +362,7 @@ function redraw()
       if s.length>0 then
         x_pos=util.linlin(us.waveform_view[1],us.waveform_view[2],1,128,s.start)
         screen.move(x_pos-1,26)
-        screen.text(i)
+        screen.text(up.samples[i].name)
         screen.move(x_pos,29)
         screen.line_rel(0,34)
         screen.move(x_pos,62)
@@ -376,7 +373,7 @@ function redraw()
         screen.move(x_pos,29)
         screen.line_rel(0,34)
         screen.move(x_pos+1,64)
-        screen.text(i)
+        screen.text(up.samples[i].name)
         screen.move(x_pos,62)
         screen.line_rel(-3,3)
         screen.move(x_pos,29)
