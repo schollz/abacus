@@ -102,7 +102,7 @@ function init()
     up.samples[i]={}
     up.samples[i].start=0
     up.samples[i].length=0
-    up.patterns[i]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
+    up.patterns[i]={}
   end
   
   -- update clocks
