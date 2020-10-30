@@ -7,6 +7,8 @@
 --
 --    ▼ instructions below ▼
 
+-- docs: https://monome.org/docs/norns/api/modules/softcut.html
+
 --
 -- globals
 --
@@ -18,15 +20,16 @@ us={
   zoomed=false,
   playing=false,
   message='',
+  available_files={},
   waveform_samples={},
   interval=0,
-  available_files={},
 }
 
 -- user parameters
 -- put things that can be saved
 -- don't put things here that can be put into global parameters
 up={
+  filename_save='1.json',
   filename='',
   length=0,
   rate=1,
@@ -46,8 +49,29 @@ uc={
 function init()
   -- determine which files are available
   us.available_files={'amenbreak.wav'}
+  us.available_saves={''}
   
   -- parameters
+  params:add {
+    type='option',
+    id='choose_save',
+    name='Choose save',
+    options=us.available_save,
+    action=function(value)
+      up.filename_save=us.available_files[value]
+    end
+  }
+  params:add {
+    type='trigger',
+    id='load_save',
+    name='Load previous',
+    action=function(value)
+      if value=='-' then
+        return
+      end
+      -- TODO: load a file name and the sample
+    end
+  }
   params:add {
     type='option',
     id='choose_sample',
@@ -128,8 +152,7 @@ function load_sample()
   -- load file
   up.length,up.rate=load_file(up.filename)
   -- render new waveform
-  -- https://github.com/monome/softcut-studies/blob/master/8-copy.lua
-  softcut.render_buffer(buffer,0,up.length,128)
+  softcut.render_buffer(1,0,up.length,128)
 end
 
 --
@@ -153,26 +176,22 @@ function redraw()
   screen.clear()
   
   -- plot waveform
-  screen.level(15)
-  screen.move(62,10)
-  if not dismiss_K2_message then
-    screen.text_center("K2: random copy/paste")
-  else
-    screen.text_center("K3: save new clip")
-  end
-  screen.level(4)
-  local x_pos=0
-  for i,s in ipairs(waveform_samples) do
-    local height=util.round(math.abs(s)*(scale*level))
-    screen.move(util.linlin(0,128,10,120,x_pos),35-height)
-    screen.line_rel(0,2*height)
+  -- https://github.com/monome/softcut-studies/blob/master/8-copy.lua
+  if table.getn(us.waveform_samples)>0 then
+    screen.level(4)
+    local x_pos=0
+    for i,s in ipairs(us.waveform_samples) do
+      local height=util.round(math.abs(s)*(scale*level))
+      screen.move(util.linlin(0,128,10,120,x_pos),35-height)
+      screen.line_rel(0,2*height)
+      screen.stroke()
+      x_pos=x_pos+1
+    end
+    screen.level(15)
+    screen.move(util.linlin(0,1,10,120,position),18)
+    screen.line_rel(0,35)
     screen.stroke()
-    x_pos=x_pos+1
   end
-  screen.level(15)
-  screen.move(util.linlin(0,1,10,120,position),18)
-  screen.line_rel(0,35)
-  screen.stroke()
   
   -- show message if exists
   if us.message~="" then
