@@ -6,6 +6,14 @@
 --
 --
 --    ▼ instructions below ▼
+-- K1+K2 toggles sample/pattern/chain mode
+-- K1+K3 starts/stops pattern
+-- K2 zooms (sample mode) or patterns (pattern mode)
+-- K3 plays current sample
+-- E1 changes sample (sample+pattern) or pattern (chain)
+-- E2 changes start (sample+pattern), chain position (chain)
+-- E3 changes length (sample+pattern), pattern at current chain position (chain)
+
 
 -- docs: https://monome.org/docs/norns/api/modules/softcut.html
 
@@ -16,6 +24,7 @@
 -- user state
 us={
   mode=0,-- 0=sampler,1=pattern,2==chain
+  shift=false,
   update_ui=false,
   zoomed=false,
   playing=false,
@@ -188,8 +197,7 @@ end
 --
 function load_sample()
   -- load file
-  up.length,up.rate=load_file(up.filename)
-  up.bpm=137
+  up.length,up.rate,up.bpm=load_file(up.filename)
   update_waveform_view(0,up.length)
 end
 
@@ -230,7 +238,15 @@ function enc(n,d)
 end
 
 function key(n,z)
-  if n==2 and z==1 then
+  if n==1 then
+    us.shift=(z==1)
+  elseif n==2 and z==1 and us.shift then
+    -- toggle sample/pattern/chain mode
+    us.mode=us.mode+1
+    if us.mode>2 then
+      us.mode=0
+    end
+  elseif n==2 and z==1 then
     if up.samples[us.sample_cur].start==us.waveform_view[1] and up.samples[us.sample_cur].start+up.samples[us.sample_cur].length==us.waveform_view[2] then
       update_waveform_view(0,up.length)
     else
@@ -447,5 +463,7 @@ function load_file(file)
   duration=samples/48000.0
   softcut.buffer_read_mono(file,0,0,-1,1,1)
   print("loaded "..file.." sr="..samplerate..", duration="..duration)
-  return duration,rate
+  local bpm=clock.get_bpm()
+  -- TODO: get bpm from file
+  return duration,rate,bpm
 end
