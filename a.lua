@@ -215,6 +215,9 @@ function enc(n,d)
     us.sample_cur=util.clamp(us.sample_cur+sign(d),1,9)
   elseif n==2 then
     up.samples[us.sample_cur].start=util.clamp(up.samples[us.sample_cur].start+d/1000,us.waveform_view[1],us.waveform_view[2])
+    if up.samples[us.sample_cur]==0 then
+      up.samples[us.sample_cur]=clock.get_beat_sec()/16
+    end
   elseif n==3 then
     local x=d*clock.get_beat_sec()/16
     up.samples[us.sample_cur].length=util.clamp(up.samples[us.sample_cur].length+x,0,us.waveform_view[2]-up.samples[us.sample_cur].start)
@@ -343,7 +346,7 @@ function redraw()
     end
     screen.level(15)
     for i,s in ipairs(up.samples) do
-      if s.start>0 and s.length>0 then
+      if s.length>0 then
         x_pos=util.linlin(us.waveform_view[1],us.waveform_view[2],1,128,s.start)
         screen.move(x_pos-1,26)
         screen.text(i)
