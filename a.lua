@@ -40,7 +40,7 @@ up={
   bpm=0,
   samples={},
   patterns={},
-  chain={1,0,0,0,0,0,0,0,0,0},
+  chain={1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
 }
 
 -- user constants
@@ -119,7 +119,7 @@ function init()
     up.samples[i]={}
     up.samples[i].start=0
     up.samples[i].length=0
-    up.patterns[i]={}
+    up.patterns[i]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
   end
   
   -- update clocks
@@ -135,6 +135,12 @@ function init()
   up.filename=uc.code_dir..'sounds/amen.wav'
   load_sample()
   up.samples[1]={start=0.3,length=0.2}
+  up.patterns[1][1]=3
+  up.patterns[1][2]=4
+  up.patterns[1][3]=4
+  up.patterns[1][4]=4
+  up.patterns[1][5]=1
+  up.patterns[1][6]=1
 end
 
 --
@@ -205,7 +211,9 @@ end
 --
 
 function enc(n,d)
-  if n==2 then
+  if n==1 then 
+    us.sample_cur = util.clamp(us.sample_cur+sign(d),1,9)
+  elseif n==2 then
     up.samples[us.sample_cur].start=util.clamp(up.samples[us.sample_cur].start+d/1000,us.waveform_view[1],us.waveform_view[2])
   elseif n==3 then
     local x=d*clock.get_beat_sec()/16
@@ -246,41 +254,68 @@ function redraw()
   screen.level(15)
   screen.rect(1,1,7,8)
   screen.stroke()
-  screen.move(2,7)
-  screen.text("2")
+  isone = 0
+  if us.sample_cur==1 then
+    isone = 1
+  end
+  screen.move(2+isone,7)
+  screen.text(us.sample_cur)
   
   -- show pattern info
   screen.level(4)
   screen.rect(10,1,7,8)
   screen.stroke()
-  screen.move(11,7)
-  screen.text("8")
+  isone = 0
+  if us.pattern_cur==1 then
+    isone = 1
+  end
+  screen.move(11+isone,7)
+  screen.text(us.pattern_cur)
   
   -- show chain info
-  for i=1,16 do
+  for i=1,#up.chain do
     if i==3 then
       screen.level(15)
     else
       screen.level(4)
     end
-    screen.move(19+(i-1)*7,7)
-    screen.text("2")
+    if up.chain[i] > 0 then
+      isone = 0
+      if up.chain[i]==1 then
+        isone = 1
+      end
+      screen.move(19+(i-1)*7+isone,7)
+      screen.text(up.chain[i])
+    end
   end
   
   -- show pattern
+  local p = up.patterns[us.pattern_cur]
   for i=1,16 do
     screen.level(4)
-    if i==1 then
-      screen.move(1+(i-1)*8,18)
-      screen.text("3")
-      screen.rect(6+(i-1)*8,13,2,5)
-    elseif i==2 then
+    if p[i]==us.sample_cur then 
       screen.level(15)
-      local sixteenths=4
-      screen.move(1+(i-1)*8,18)
-      screen.text("4")
-      screen.rect(6+(i-1)*8,13,2+(sixteenths-1)*8,5)
-    elseif i<6 then
+    end
+    if p[i] ~= 0 then 
+      if i > 1 and p[i-1]==p[i] then 
+        if i < 16 and p[i+1]==p[i] then 
+          screen.rect(1+(i-1)*8,13,8,5)
+        else
+          screen.rect(1+(i-1)*8,13,7,5)
+        end
+      else
+        isone = 0
+        if p[i]==1 then
+          isone = 1
+        end
+        screen.move(1+(i-1)*8+isone,18)
+        screen.text(p[i])
+        if i < 16 and p[i+1]==p[i] then 
+          screen.rect(6+(i-1)*8,13,3,5)
+        else
+          screen.rect(6+(i-1)*8,13,2,5)
+        end
+      end
     else
       screen.rect(1+(i-1)*8,13,7,5)
     end
