@@ -23,6 +23,7 @@ us={
   available_files={},
   waveform_samples={},
   interval=0,
+  scale=0,
 }
 
 -- user parameters
@@ -41,6 +42,7 @@ up={
 -- user constants
 uc={
   update_timer_interval=0.05,
+  audio_dir=_path.audio..'a/',
 }
 --
 -- initialization
@@ -52,15 +54,15 @@ function init()
   us.available_saves={''}
   
   -- parameters
-  params:add {
-    type='option',
-    id='choose_save',
-    name='Choose save',
-    options=us.available_save,
-    action=function(value)
-      up.filename_save=us.available_files[value]
-    end
-  }
+  -- params:add {
+  --   type='option',
+  --   id='choose_save',
+  --   name='Choose save',
+  --   options=us.available_save,
+  --   action=function(value)
+  --     up.filename_save=us.available_files[value]
+  --   end
+  -- }
   params:add {
     type='trigger',
     id='load_save',
@@ -114,6 +116,9 @@ function init()
   timer.count=-1
   timer.event=update_timer
   timer:start()
+  
+  up.filename=uc.audio_dir..'amen.wav'
+  load_sample()
 end
 
 --
@@ -122,6 +127,7 @@ end
 function update_render(ch,start,i,s)
   us.waveform_samples=s
   us.interval=i
+  us.update_ui=true
 end
 
 function update_timer()
@@ -177,19 +183,18 @@ function redraw()
   
   -- plot waveform
   -- https://github.com/monome/softcut-studies/blob/master/8-copy.lua
-  if table.getn(us.waveform_samples)>0 then
+  if #us.waveform_samples>0 then
     screen.level(4)
     local x_pos=0
+    local scale=20
+    print(us.waveform_samples)
     for i,s in ipairs(us.waveform_samples) do
-      local height=util.round(math.abs(s)*(scale*level))
-      screen.move(util.linlin(0,128,10,120,x_pos),35-height)
+      local height=util.round(math.abs(s)*scale)
+      screen.move(x_pos,45-height)
       screen.line_rel(0,2*height)
       screen.stroke()
       x_pos=x_pos+1
     end
-    screen.level(15)
-    screen.move(util.linlin(0,1,10,120,position),18)
-    screen.line_rel(0,35)
     screen.stroke()
   end
   
@@ -263,10 +268,12 @@ function round_time_to_nearest_beat(t)
 end
 
 function load_file(file)
+  print("loading "..file)
   softcut.buffer_clear_region(1,-1)
   local ch,samples,samplerate=audio.file_info(file)
   rate=samplerate/48000.0 -- compensate for files that aren't 48Khz
   duration=samples/48000.0
   softcut.buffer_read_mono(file,0,0,-1,1,1)
+  print("loaded "..file.." sr="..samplerate..", duration="..duration)
   return duration,rate
 end
