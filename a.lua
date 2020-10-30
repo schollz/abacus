@@ -20,14 +20,16 @@ us={
   message='',
   waveform_samples={},
   interval=0,
+  available_files={},
 }
 
 -- user parameters
+-- put things that can be saved
 -- don't put things here that can be put into global parameters
 up={
   filename='',
-  start=0,
   length=0,
+  rate=1,
   samples={},
   patterns={},
   chain={1,0,0,0,0,0,0,0,0,0},
@@ -42,6 +44,36 @@ uc={
 --
 
 function init()
+  -- determine which files are available
+  us.available_files={'amenbreak.wav'}
+  
+  -- parameters
+  params:add {
+    type='option',
+    id='choose_sample',
+    name='Choose sample',
+    options={'amenbreak.wav'},
+    action=function(value)
+      up.filename=us.available_files[value]
+    end
+  }
+  params:add {
+    type='trigger',
+    id='load_loops',
+    name='Load loops',
+    action=function(value)
+      if value=='-' then
+        return
+      end
+      load_sample()
+      update_parameters()
+    end
+  }
+  
+  -- initialize softcut
+  softcut.event_render(update_render)
+  
+  -- initialize samples
   for i=1,9 do
     up.samples[i]={}
     up.samples[i].start=0
@@ -63,10 +95,9 @@ end
 --
 -- updaters
 --
-
-function update_waveform()
-  -- https://github.com/monome/softcut-studies/blob/master/8-copy.lua
-  softcut.render_buffer(buffer,winstart,winend-winstart,128)
+function update_render(ch,start,i,s)
+  us.waveform_samples=s
+  us.interval=i
 end
 
 function update_timer()
@@ -86,9 +117,20 @@ function update_beat()
   end
 end
 
+function update_parameters()
+  
+end
+
 --
 -- sample controls
 --
+function load_sample()
+  -- load file
+  up.length,up.rate=load_file(up.filename)
+  -- render new waveform
+  -- https://github.com/monome/softcut-studies/blob/master/8-copy.lua
+  softcut.render_buffer(buffer,0,up.length,128)
+end
 
 --
 -- input
@@ -109,6 +151,28 @@ end
 function redraw()
   us.update_ui=false
   screen.clear()
+  
+  -- plot waveform
+  screen.level(15)
+  screen.move(62,10)
+  if not dismiss_K2_message then
+    screen.text_center("K2: random copy/paste")
+  else
+    screen.text_center("K3: save new clip")
+  end
+  screen.level(4)
+  local x_pos=0
+  for i,s in ipairs(waveform_samples) do
+    local height=util.round(math.abs(s)*(scale*level))
+    screen.move(util.linlin(0,128,10,120,x_pos),35-height)
+    screen.line_rel(0,2*height)
+    screen.stroke()
+    x_pos=x_pos+1
+  end
+  screen.level(15)
+  screen.move(util.linlin(0,1,10,120,position),18)
+  screen.line_rel(0,35)
+  screen.stroke()
   
   -- show message if exists
   if us.message~="" then
@@ -181,13 +245,9 @@ end
 
 function load_file(file)
   softcut.buffer_clear_region(1,-1)
-  if file~="cancel" then
-    local ch,samples,samplerate=audio.file_info(file)
-    rate=samplerate/48000.0 -- compensate for files that aren't 48Khz
-    duration=samples/48000.0
-    softcut.buffer_read_mono(file,0,0,-1,1,1)
-    return true,duration,rate
-  else
-    return false,0,1
-  end
+  local ch,samples,samplerate=audio.file_info(file)
+  rate=samplerate/48000.0 -- compensate for files that aren't 48Khz
+  duration=samples/48000.0
+  softcut.buffer_read_mono(file,0,0,-1,1,1)
+  return duration,rate
 end
