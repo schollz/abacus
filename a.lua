@@ -101,6 +101,15 @@ function init()
   -- }
   
   -- initialize softcut
+  for i=1,2 do
+    softcut.enable(i,1)
+    softcut.pan(i,0)
+    softcut.rate(i,1)
+    softcut.loop(i,0)
+    softcut.rec(i,0)
+    softcut.buffer(i,1)
+    softcut.position(i,0)
+  end
   softcut.event_render(update_render)
   
   -- initialize samples
@@ -170,6 +179,13 @@ function load_sample()
   update_waveform_view(0,up.length)
 end
 
+function sample_one_shot()
+  softcut.position(2,up.samples[us.sample_cur].start)
+  softcut.loop_start(2,up.samples[us.sample_cur].start)
+  softcut.loop_end(2,up.samples[us.sample_cur].start+up.samples[us.sample_cur].length)
+  softcut.play(2,1)
+end
+
 --
 -- input
 --
@@ -191,6 +207,9 @@ function key(n,z)
       print("zooming to "..up.samples[us.sample_cur].start..","..up.samples[us.sample_cur].start+up.samples[us.sample_cur].length)
       update_waveform_view(up.samples[us.sample_cur].start,up.samples[us.sample_cur].start+up.samples[us.sample_cur].length)
     end
+  elseif n==2 and z==1 then
+    -- play a sample at curent position
+    sample_one_shot()
   end
 end
 
