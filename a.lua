@@ -1,5 +1,5 @@
 -- ??? v0.1.0
--- sampler sequencer
+-- ???
 --
 -- llllllll.co/t/?
 --
@@ -22,8 +22,11 @@ us={
   message='',
   available_files={},
   waveform_samples={},
+  waveform_view={0,0},
   interval=0,
   scale=0,
+  sample_cur=1,
+  pattern_cur=1,
 }
 
 -- user parameters
@@ -43,6 +46,7 @@ up={
 uc={
   update_timer_interval=0.05,
   audio_dir=_path.audio..'a/',
+  code_dir=_path.code..'a/',
 }
 --
 -- initialization
@@ -50,8 +54,8 @@ uc={
 
 function init()
   -- determine which files are available
-  us.available_files={'amenbreak.wav'}
-  us.available_saves={''}
+  -- us.available_files={'amenbreak.wav'}
+  -- us.available_saves={''}
   
   -- parameters
   -- params:add {
@@ -63,38 +67,38 @@ function init()
   --     up.filename_save=us.available_files[value]
   --   end
   -- }
-  params:add {
-    type='trigger',
-    id='load_save',
-    name='Load previous',
-    action=function(value)
-      if value=='-' then
-        return
-      end
-      -- TODO: load a file name and the sample
-    end
-  }
-  params:add {
-    type='option',
-    id='choose_sample',
-    name='Choose sample',
-    options={'amenbreak.wav'},
-    action=function(value)
-      up.filename=us.available_files[value]
-    end
-  }
-  params:add {
-    type='trigger',
-    id='load_loops',
-    name='Load loops',
-    action=function(value)
-      if value=='-' then
-        return
-      end
-      load_sample()
-      update_parameters()
-    end
-  }
+  -- params:add {
+  --   type='trigger',
+  --   id='load_save',
+  --   name='Load previous',
+  --   action=function(value)
+  --     if value=='-' then
+  --       return
+  --     end
+  --     -- TODO: load a file name and the sample
+  --   end
+  -- }
+  -- params:add {
+  --   type='option',
+  --   id='choose_sample',
+  --   name='Choose sample',
+  --   options={'amenbreak.wav'},
+  --   action=function(value)
+  --     up.filename=us.available_files[value]
+  --   end
+  -- }
+  -- params:add {
+  --   type='trigger',
+  --   id='load_loops',
+  --   name='Load loops',
+  --   action=function(value)
+  --     if value=='-' then
+  --       return
+  --     end
+  --     load_sample()
+  --     update_parameters()
+  --   end
+  -- }
   
   -- initialize softcut
   softcut.event_render(update_render)
@@ -117,7 +121,7 @@ function init()
   timer.event=update_timer
   timer:start()
   
-  up.filename=uc.audio_dir..'amen.wav'
+  up.filename=uc.code_dir..'sounds/amen.wav'
   load_sample()
 end
 
@@ -151,14 +155,19 @@ function update_parameters()
   
 end
 
+function update_waveform_view(pos1,pos2)
+  us.waveform_view={pos1,pos2}
+  -- render new waveform
+  softcut.render_buffer(1,pos1,pos2,128)
+end
+
 --
 -- sample controls
 --
 function load_sample()
   -- load file
   up.length,up.rate=load_file(up.filename)
-  -- render new waveform
-  softcut.render_buffer(1,0,up.length,128)
+  update_waveform_view(0,up.length)
 end
 
 --
@@ -166,11 +175,23 @@ end
 --
 
 function enc(n,d)
-  
+  if n==2 then
+    up.samples[us.sample_cur].start=util.clamp(up.samples[us.sample_cur].start+d/1000,us.waveform_view[1],us.waveform_view[2])
+  elseif n==3 then
+    up.samples[us.sample_cur].length=util.clamp(up.samples[us.sample_cur].length+d/1000,0,us.waveform_view[2]-up.samples[us.sample_cur].start)
+  end
+  us.update_ui=true
 end
 
 function key(n,z)
-  
+  if n==2 and z==1 then
+    if up.samples[us.sample_cur].start==us.waveform_view[1] and up.samples[us.sample_cur].start+up.samples[us.sample_cur].length==us.waveform_view[2] then
+      update_waveform_view(0,up.length)
+    else
+      print("zooming to "..up.samples[us.sample_cur].start..","..up.samples[us.sample_cur].start+up.samples[us.sample_cur].length)
+      update_waveform_view(up.samples[us.sample_cur].start,up.samples[us.sample_cur].start+up.samples[us.sample_cur].length)
+    end
+  end
 end
 
 --
@@ -187,13 +208,23 @@ function redraw()
     screen.level(4)
     local x_pos=0
     local scale=20
-    print(us.waveform_samples)
     for i,s in ipairs(us.waveform_samples) do
       local height=util.round(math.abs(s)*scale)
       screen.move(x_pos,45-height)
       screen.line_rel(0,2*height)
       screen.stroke()
       x_pos=x_pos+1
+    end
+    screen.level(15)
+    for i,s in ipairs(up.samples) do
+      if s.start>0 and s.length>0 then
+        x_pos=util.linlin(us.waveform_view[1],us.waveform_view[2],1,128,s.start)
+        screen.move(x_pos,25)
+        screen.line_rel(0,64-25)
+        x_pos=util.linlin(us.waveform_view[1],us.waveform_view[2],1,128,s.start+s.length)
+        screen.move(x_pos,25)
+        screen.line_rel(0,64-25)
+      end
     end
     screen.stroke()
   end
