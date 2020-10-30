@@ -27,8 +27,8 @@ us={
   scale=0,
   sample_cur=1,
   pattern_cur=1,
+  samples_playing={0,0},
 }
-
 -- user parameters
 -- put things that can be saved
 -- don't put things here that can be put into global parameters
@@ -37,6 +37,7 @@ up={
   filename='',
   length=0,
   rate=1,
+  bpm=0,
   samples={},
   patterns={},
   chain={1,0,0,0,0,0,0,0,0,0},
@@ -103,6 +104,7 @@ function init()
   -- initialize softcut
   for i=1,2 do
     softcut.enable(i,1)
+    softcut.level(i,1)
     softcut.pan(i,0)
     softcut.rate(i,1)
     softcut.loop(i,0)
@@ -132,6 +134,7 @@ function init()
   
   up.filename=uc.code_dir..'sounds/amen.wav'
   load_sample()
+  up.samples[1]={start=0.3,length=0.2}
 end
 
 --
@@ -176,13 +179,24 @@ end
 function load_sample()
   -- load file
   up.length,up.rate=load_file(up.filename)
+  up.bpm=137
   update_waveform_view(0,up.length)
 end
 
 function sample_one_shot()
-  softcut.position(2,up.samples[us.sample_cur].start)
-  softcut.loop_start(2,up.samples[us.sample_cur].start)
-  softcut.loop_end(2,up.samples[us.sample_cur].start+up.samples[us.sample_cur].length)
+  local s = up.samples[us.sample_cur].start
+  local e = up.samples[us.sample_cur].start + up.samples[us.sample_cur].length
+  clock.run(function()
+    us.samples_playing = {s,e}
+    redraw()
+    clock.sleep(e-s)
+    us.samples_playing = {0,0}
+    redraw()
+  end)
+  softcut.rate(2,up.rate*clock.get_tempo()/up.bpm)
+  softcut.position(2,s)
+  softcut.loop_start(2,s)
+  softcut.loop_end(2,e)
   softcut.play(2,1)
 end
 
@@ -194,7 +208,8 @@ function enc(n,d)
   if n==2 then
     up.samples[us.sample_cur].start=util.clamp(up.samples[us.sample_cur].start+d/1000,us.waveform_view[1],us.waveform_view[2])
   elseif n==3 then
-    up.samples[us.sample_cur].length=util.clamp(up.samples[us.sample_cur].length+d/1000,0,us.waveform_view[2]-up.samples[us.sample_cur].start)
+    local x=d*clock.get_beat_sec()/16
+    up.samples[us.sample_cur].length=util.clamp(up.samples[us.sample_cur].length+x,0,us.waveform_view[2]-up.samples[us.sample_cur].start)
   end
   us.update_ui=true
 end
@@ -207,7 +222,7 @@ function key(n,z)
       print("zooming to "..up.samples[us.sample_cur].start..","..up.samples[us.sample_cur].start+up.samples[us.sample_cur].length)
       update_waveform_view(up.samples[us.sample_cur].start,up.samples[us.sample_cur].start+up.samples[us.sample_cur].length)
     end
-  elseif n==2 and z==1 then
+  elseif n==3 and z==1 then
     -- play a sample at curent position
     sample_one_shot()
   end
@@ -221,15 +236,72 @@ function redraw()
   us.update_ui=false
   screen.clear()
   
+  -- check shift
+  local shift_amount=0
+  if us.shift then
+    shift_amount=4
+  end
+  
+  -- show sample info
+  screen.level(15)
+  screen.rect(1,1,7,8)
+  screen.stroke()
+  screen.move(2,7)
+  screen.text("2")
+  
+  -- show pattern info
+  screen.level(4)
+  screen.rect(10,1,7,8)
+  screen.stroke()
+  screen.move(11,7)
+  screen.text("8")
+  
+  -- show chain info
+  for i=1,16 do
+    if i==3 then
+      screen.level(15)
+    else
+      screen.level(4)
+    end
+    screen.move(19+(i-1)*7,7)
+    screen.text("2")
+  end
+  
+  -- show pattern
+  for i=1,16 do
+    screen.level(4)
+    if i==1 then
+      screen.move(1+(i-1)*8,18)
+      screen.text("3")
+      screen.rect(6+(i-1)*8,13,2,5)
+    elseif i==2 then
+      screen.level(15)
+      local sixteenths=4
+      screen.move(1+(i-1)*8,18)
+      screen.text("4")
+      screen.rect(6+(i-1)*8,13,2+(sixteenths-1)*8,5)
+    elseif i<6 then
+    else
+      screen.rect(1+(i-1)*8,13,7,5)
+    end
+    screen.fill()
+  end
+  
   -- plot waveform
   -- https://github.com/monome/softcut-studies/blob/master/8-copy.lua
   if #us.waveform_samples>0 then
     screen.level(4)
     local x_pos=0
-    local scale=20
+    local scale=19
     for i,s in ipairs(us.waveform_samples) do
       local height=util.round(math.abs(s)*scale)
-      screen.move(x_pos,45-height)
+      local current_time=util.linlin(0,128,us.waveform_view[1],us.waveform_view[2],x_pos)
+      if current_time > us.samples_playing[1] and current_time < us.samples_playing[2] then 
+        screen.level(15)
+      else
+        screen.level(4)
+      end
+      screen.move(i,45-height)
       screen.line_rel(0,2*height)
       screen.stroke()
       x_pos=x_pos+1
@@ -238,11 +310,23 @@ function redraw()
     for i,s in ipairs(up.samples) do
       if s.start>0 and s.length>0 then
         x_pos=util.linlin(us.waveform_view[1],us.waveform_view[2],1,128,s.start)
-        screen.move(x_pos,25)
-        screen.line_rel(0,64-25)
+        screen.move(x_pos-1,26)
+        screen.text(i)
+        screen.move(x_pos,29)
+        screen.line_rel(0,34)
+        screen.move(x_pos,62)
+        screen.line_rel(3,3)
+        screen.move(x_pos,29)
+        screen.line_rel(3,-3)
         x_pos=util.linlin(us.waveform_view[1],us.waveform_view[2],1,128,s.start+s.length)
-        screen.move(x_pos,25)
-        screen.line_rel(0,64-25)
+        screen.move(x_pos-1,26)
+        screen.text(i)
+        screen.move(x_pos,29)
+        screen.line_rel(0,34)
+        screen.move(x_pos,62)
+        screen.line_rel(-3,3)
+        screen.move(x_pos,29)
+        screen.line_rel(-3,-3)
       end
     end
     screen.stroke()
