@@ -115,10 +115,14 @@ function init()
   softcut.event_render(update_render)
 
   -- initialize samples
-  for i=1,9 do
+	local alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+  for i=1,26 do
     up.samples[i]={}
     up.samples[i].start=0
     up.samples[i].length=0
+    up.samples[i].name=alphabet:sub(i,i)
+  end
+  for i=1,8 do
     up.patterns[i]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
   end
 
@@ -257,12 +261,8 @@ function redraw()
   screen.level(15)
   screen.rect(1,1,7,8)
   screen.stroke()
-  isone=0
-  if us.sample_cur==1 then
-    isone=1
-  end
-  screen.move(2+isone,7)
-  screen.text(us.sample_cur)
+  screen.move(2,7)
+  screen.text(up.samples[us.sample_cur].name)
 
   -- show pattern info
   screen.level(4)
