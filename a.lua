@@ -176,7 +176,7 @@ end
 function update_waveform_view(pos1,pos2)
   us.waveform_view={pos1,pos2}
   -- render new waveform
-  softcut.render_buffer(1,pos1,pos2,128)
+  softcut.render_buffer(1,pos1,pos2-pos1,128)
 end
 
 --
@@ -354,10 +354,10 @@ function redraw()
         screen.move(x_pos,29)
         screen.line_rel(3,-3)
         x_pos=util.linlin(us.waveform_view[1],us.waveform_view[2],1,128,s.start+s.length)
-        screen.move(x_pos-1,26)
-        screen.text(i)
         screen.move(x_pos,29)
         screen.line_rel(0,34)
+        screen.move(x_pos+1,64)
+        screen.text(i)
         screen.move(x_pos,62)
         screen.line_rel(-3,3)
         screen.move(x_pos,29)
