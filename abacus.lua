@@ -123,6 +123,7 @@ function init()
   --     update_parameters()
   --   end
   -- }
+  -- TODO: add individual parameters for pitching up/down specific samples
 
   -- initialize softcut
   for i=1,2 do
