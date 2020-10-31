@@ -211,6 +211,7 @@ function update_beat()
   while true do
     clock.sync(1/16)
     if us.playing==false then goto continue end
+    clock.run(function()
     us.playing_beat = us.playing_beat+1
     if us.playing_beat > 16 then 
       us.playing_chain = us.playing_chain + 1
@@ -229,10 +230,10 @@ function update_beat()
       us.playing_pattern_segment = 0
       us.playing_sample={0,0}
       redraw()
-      goto continue
+return
     end
     if playing_pattern_segment == us.playing_pattern_segment then 
-      goto continue
+      return
     end
     us.playing_pattern_segment = playing_pattern_segment
     local start = us.playing_beat
@@ -261,6 +262,7 @@ function update_beat()
     -- TODO: figure out position in chain/pattern/sample
     -- TODO: add effects
     redraw()
+  end)
     ::continue::
   end
 end
