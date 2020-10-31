@@ -19,7 +19,7 @@
 -- E3 changes
 -- docs: https://monome.org/docs/norns/api/modules/softcut.html
 
-json = include("lib/json")
+json=include("lib/json")
 
 --
 -- globals
@@ -361,21 +361,21 @@ end
 -- save/load
 --
 function parameters_save(filename)
-  data = json.encode(up)
+  data=json.encode(up)
   print(data)
-  file = io.open(uc.data_dir..filename,"w+")
+  file=io.open(uc.data_dir..filename,"w+")
   io.output(file)
   print(io.write(data))
   io.close(file)
 end
 
 function parameters_load(filename)
-  filename= uc.data_dir..filename
-  if util.file_exists(filename) then 
-    local f = io.open(filename, "rb")
+  filename=uc.data_dir..filename
+  if util.file_exists(filename) then
+    local f=io.open(filename,"rb")
     print(f)
-    local content = f:read("*all")
-    up = json.decode(content)
+    local content=f:read("*all")
+    up=json.decode(content)
     f:close()
   end
 end
@@ -388,13 +388,13 @@ function enc(n,d)
   if n==1 and us.shift then
     -- toggle sample/pattern/chain mode
     us.mode=util.clamp(us.mode+sign(d),0,2)
-    if us.mode==1 then 
+    if us.mode==1 then
       -- figure out which samples are usable
       us.samples_usable={}
-      for i=1,#up.samples do 
-        if up.samples[i].length > 0 then 
+      for i=1,#up.samples do
+        if up.samples[i].length>0 then
           table.insert(us.samples_usable,i)
-        end 
+        end
       end
     end
   elseif n==1 and us.mode==0 then
@@ -407,13 +407,13 @@ function enc(n,d)
     if up.samples[us.sample_cur].length==0 then
       up.samples[us.sample_cur].length=clock.get_beat_sec()/4
     end
-    if up.samples[us.sample_cur].start< us.waveform_view[1] then
+    if up.samples[us.sample_cur].start<us.waveform_view[1] then
       update_waveform_view(up.samples[us.sample_cur].start,up.samples[us.sample_cur].start+up.samples[us.sample_cur].length)
     end
   elseif n==3 and us.mode==0 then
     local x=d*clock.get_beat_sec()/4
     up.samples[us.sample_cur].length=util.clamp(up.samples[us.sample_cur].length+x,0,up.length-up.samples[us.sample_cur].start)
-    if up.samples[us.sample_cur].start+up.samples[us.sample_cur].length > us.waveform_view[2] then
+    if up.samples[us.sample_cur].start+up.samples[us.sample_cur].length>us.waveform_view[2] then
       update_waveform_view(up.samples[us.sample_cur].start,up.samples[us.sample_cur].start+up.samples[us.sample_cur].length)
     end
     us.pattern_temp.length=util.round(up.samples[us.sample_cur].length/(clock.get_beat_sec()/4))
@@ -729,4 +729,4 @@ function table.clone(org)
   return {table.unpack(org)}
 end
 
- 
+
