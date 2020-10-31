@@ -25,7 +25,7 @@
 
 -- user state
 us={
-  mode=1,-- 0=sampler,1=pattern,2==chain
+  mode=0,-- 0=sampler,1=pattern,2==chain
   shift=false,
   update_ui=false,
   zoomed=false,
@@ -59,8 +59,8 @@ up={
 -- user constants
 uc={
   update_timer_interval=0.05,
-  audio_dir=_path.audio..'a/',
-  code_dir=_path.code..'a/',
+  audio_dir=_path.audio..'abacus/',
+  code_dir=_path.code..'abacus/',
 }
 --
 -- initialization
@@ -134,7 +134,6 @@ function init()
     up.samples[i].start=0
     up.samples[i].length=0
     up.samples[i].name=alphabet:sub(i,i)
-    print(up.samples[i].name)
   end
   for i=1,8 do
     up.patterns[i]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
@@ -152,14 +151,24 @@ function init()
 
   up.filename=uc.code_dir..'sounds/amen.wav'
   load_sample()
-  up.samples[1].start=0.3
-  up.samples[1].length=0.2
-  up.patterns[1][1]=3
-  up.patterns[1][2]=4
-  up.patterns[1][3]=4
-  up.patterns[1][4]=4
-  up.patterns[1][5]=1
-  up.patterns[1][6]=1
+  up.samples[1].start=0.32
+  up.samples[1].length=4*clock.get_beat_sec()/16
+  up.samples[2].start=0
+  up.samples[2].length=4*clock.get_beat_sec()/16
+  up.samples[3].start=0.591
+  up.samples[3].length=2*clock.get_beat_sec()/16
+  up.patterns[1][1]=2
+  up.patterns[1][2]=2
+  up.patterns[1][3]=2
+  up.patterns[1][4]=2
+  up.patterns[1][7]=1
+  up.patterns[1][8]=1
+  up.patterns[1][9]=1
+  up.patterns[1][10]=1
+  up.patterns[1][13]=3.1
+  up.patterns[1][14]=3.1
+  up.patterns[1][15]=3.2
+  up.patterns[1][16]=3.2
 end
 
 --
@@ -368,7 +377,6 @@ function redraw()
     finish=start+1
   end
   for i=1,16 do
-    print(p[i])
     screen.level(4)
     local isactive = false
     if i >= start and i < finish and us.mode==1 then
