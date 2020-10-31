@@ -6,14 +6,14 @@
 --
 --
 --    ▼ instructions below ▼
--- K1+K2 toggles sample/pattern/chain mode
+-- K1+E1 changes sample/pattern/chain mode
 -- K1+K3 starts/stops pattern/chain
 -- K2 zooms (sample mode) or patterns (pattern mode)
 -- K3 plays current sample
 -- E1 changes sample (sample+pattern) or pattern (chain)
 -- E2 changes start (sample+pattern), chain position (chain)
 -- E3 changes length (sample+pattern), pattern at current chain position (chain)
-
+-- K1+K2 erases patterns (pattern mode)
 
 -- docs: https://monome.org/docs/norns/api/modules/softcut.html
 
@@ -197,6 +197,19 @@ function update_waveform_view(pos1,pos2)
 end
 
 --
+-- pattern controls
+--
+
+function pattern_stamp(sampleid,start,length)
+  local p=table.clone(up.patterns[us.pattern_cur])
+  rvalue = math.random()
+  for i=start,start+length-1 do 
+    p[i]=sampleid+rvalue
+  end
+  return p
+end
+
+--
 -- sample controls
 --
 function load_sample()
@@ -227,7 +240,10 @@ end
 --
 
 function enc(n,d)
-  if n==1 and us.mode <= 1then
+  if n==1 and us.shift then 
+    -- toggle sample/pattern/chain mode
+    us.mode=util.clamp(us.mode+sign(d),0,2)
+  elseif n==1 and us.mode <= 1then
     us.sample_cur=util.clamp(us.sample_cur+sign(d),1,26)
   elseif n==2 and us.mode == 0 then
     up.samples[us.sample_cur].start=util.clamp(up.samples[us.sample_cur].start+d/1000,us.waveform_view[1],us.waveform_view[2])
@@ -239,7 +255,11 @@ function enc(n,d)
     up.samples[us.sample_cur].length=util.clamp(up.samples[us.sample_cur].length+x,0,us.waveform_view[2]-up.samples[us.sample_cur].start)
     us.pattern_temp.length = util.round(up.samples[us.sample_cur].length / (clock.get_beat_sec()/16)) 
   elseif n==2 and us.mode==1 then
+    -- change start position 
     us.pattern_temp.start = util.clamp(us.pattern_temp.start+sign(d),1,16)
+  elseif n==3 and us.mode==1 then
+    print(up.samples[us.sample_cur].length/ (clock.get_beat_sec()/16))
+    us.pattern_temp.length = math.floor(util.clamp(us.pattern_temp.length+sign(d),1,up.samples[us.sample_cur].length/ (clock.get_beat_sec()/16)))
   end
   us.update_ui=true
 end
@@ -247,19 +267,19 @@ end
 function key(n,z)
   if n==1 then
     us.shift=(z==1)
-  elseif n==2 and z==1 and us.shift then
-    -- toggle sample/pattern/chain mode
-    us.mode=us.mode+1
-    if us.mode>2 then
-      us.mode=0
-    end
-  elseif n==2 and z==1 then
+  elseif n==2 and z==1 and us.mode == 0 then
     if up.samples[us.sample_cur].start==us.waveform_view[1] and up.samples[us.sample_cur].start+up.samples[us.sample_cur].length==us.waveform_view[2] then
       update_waveform_view(0,up.length)
     else
       print("zooming to "..up.samples[us.sample_cur].start..","..up.samples[us.sample_cur].start+up.samples[us.sample_cur].length)
       update_waveform_view(up.samples[us.sample_cur].start,up.samples[us.sample_cur].start+up.samples[us.sample_cur].length)
     end
+  elseif n==2 and z==1 and us.mode ==1 and us.shift then 
+    -- make new pattern 
+    up.patterns[us.pattern_cur][us.pattern_temp.start] = 0
+  elseif n==2 and z==1 and us.mode ==1 then 
+    -- make new pattern 
+    up.patterns[us.pattern_cur] = pattern_stamp(us.sample_cur,us.pattern_temp.start,us.pattern_temp.length)
   elseif n==3 and z==1 then
     -- play a sample at curent position
     sample_one_shot()
@@ -328,17 +348,21 @@ function redraw()
   local p=table.clone(up.patterns[us.pattern_cur])
   if us.mode ==1 then
     -- fill in temp pattern
-    print("us.pattern_temp.start "..us.pattern_temp.start)
-    print("us.pattern_temp.length "..us.pattern_temp.length)
-    for i=us.pattern_temp.start,us.pattern_temp.start+us.pattern_temp.length do 
-      p[i]=us.sample_cur
-    end
+    p = pattern_stamp(us.sample_cur,us.pattern_temp.start,us.pattern_temp.length)
+    -- print("us.pattern_temp.start "..us.pattern_temp.start)
+    -- print("us.pattern_temp.length "..us.pattern_temp.length)
+    -- rvalue = math.random()
+    -- for i=us.pattern_temp.start,us.pattern_temp.start+us.pattern_temp.length-1 do 
+    --   p[i]=us.sample_cur+rvalue
+    -- end
   end
   for i=1,16 do
     print(p[i])
     screen.level(4)
-    if i >= us.pattern_temp.start and i <= us.pattern_temp.length and us.mode==1 then
+    local isactive = false
+    if i >= us.pattern_temp.start and i < us.pattern_temp.start+us.pattern_temp.length and us.mode==1 then
       screen.level(15)
+      isactive = true
     end
     if p[i]~=0 then
       if i>1 and p[i-1]==p[i] then
@@ -349,7 +373,7 @@ function redraw()
         end
       else
         screen.move(1+(i-1)*8,18)
-        screen.text(up.samples[p[i]].name)
+        screen.text(up.samples[math.floor(p[i])].name)
         if i<16 and p[i+1]==p[i] then
           screen.rect(6+(i-1)*8,13,3,5)
         else
@@ -357,6 +381,9 @@ function redraw()
         end
       end
     else
+      screen.rect(1+(i-1)*8,13,7,5)
+    end
+    if us.shift and isactive then 
       screen.rect(1+(i-1)*8,13,7,5)
     end
     screen.fill()
