@@ -56,7 +56,7 @@ up={
   bpm=0,
   samples={},
   patterns={},
-  chain={1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+  chain={1,2,3,4,0,0,0,0,0,0,0,0,0,0,0,0},
 }
 
 -- user constants
@@ -173,6 +173,18 @@ function init()
   up.patterns[1][14]=3.1
   up.patterns[1][15]=3.2
   up.patterns[1][16]=3.2
+  up.patterns[2][1]=2
+  up.patterns[2][2]=2
+  up.patterns[2][3]=2
+  up.patterns[2][4]=2
+  up.patterns[3][1]=2
+  up.patterns[3][2]=2
+  up.patterns[3][3]=2
+  up.patterns[3][4]=2
+  up.patterns[4][1]=2
+  up.patterns[4][2]=2
+  up.patterns[4][3]=2
+  up.patterns[4][4]=2
 end
 
 --
@@ -289,23 +301,29 @@ function sample_one_shot()
 end
 
 function sample_create_playback()
-  local current_pattern = 0 
-  local p = up.patterns[1]
   local seconds_per_beat = 60/up.bpm
-  for i=1,16 do
-    if p[i] ~= current_pattern then 
-      current_pattern = p[i]
-      -- copy over buffer
-      if current_pattern > 0 then 
-        sample_id = math.floor(current_pattern)
-        local sample_start = up.samples[sample_id].start
-        local sample_length = up.samples[sample_id].length
-        softcut.buffer_copy_mono(1,1,sample_start,80+(i-1)*seconds_per_beat/16,sample_length,0,0)
+  local current_position = 80
+  for chainit=1,#up.chain do 
+    local chainid=up.chain[chainit]
+    if chainid == 0 then break end
+    local current_pattern = 0 
+    local p = up.patterns[chainid]
+    for i=1,16 do
+      if p[i] ~= current_pattern then 
+        current_pattern = p[i]
+        -- copy over buffer
+        if current_pattern > 0 then 
+          sample_id = math.floor(current_pattern)
+          local sample_start = up.samples[sample_id].start
+          local sample_length = up.samples[sample_id].length
+          softcut.buffer_copy_mono(1,1,sample_start,current_position,sample_length,0,0)
+        end
       end
+      current_position = current_position + seconds_per_beat/16
     end
   end
   softcut.loop_start(1,80)
-  softcut.loop_end(1,80+seconds_per_beat)
+  softcut.loop_end(1,current_position)
   softcut.position(1,80)
   softcut.loop(1,1)
   softcut.rate(1,up.rate*clock.get_tempo()/up.bpm)
