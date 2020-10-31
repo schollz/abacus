@@ -29,7 +29,6 @@ us={
   shift=false,
   update_ui=false,
   zoomed=false,
-  playing=false,
   message='',
   available_files={},
   waveform_samples={},
@@ -39,8 +38,12 @@ us={
   sample_cur=1,
   pattern_cur=1,
   chain_cur=1,
-  samples_playing={0,0},
   pattern_temp={start=1,length=1},
+  playing=false, -- is playing or not
+  playing_sample={0,0}, -- width of sample being played
+  playing_beat=0, -- current 
+  playing_pattern=0, -- current pattern 
+  playing_pattern_segment=0, -- current sample pattern (sample id + random int decimal)
 }
 -- user parameters
 -- put things that can be saved
@@ -151,6 +154,7 @@ function init()
 
   up.filename=uc.code_dir..'sounds/amen.wav'
   load_sample()
+  up.bpm = 120
   up.samples[1].start=0.32
   up.samples[1].length=4*clock.get_beat_sec()/16
   up.samples[2].start=0
@@ -190,9 +194,47 @@ function update_beat()
   while true do
     clock.sync(1/16)
     if us.playing==false then goto continue end
-    local beatstep=math.floor(clock.get_beats())%16
+    print(us.playing_beat)
+    us.playing_beat = us.playing_beat+1
+    if us.playing_beat > 16 then 
+      us.playing_beat=1
+    end
+    -- if silence, continue
+    local playing_pattern_segment = up.patterns[us.playing_pattern][us.playing_beat]
+    local sample_id = math.floor(playing_pattern_segment)
+    if sample_id == 0 then
+      us.playing_pattern_segment = 0
+      us.playing_sample={0,0}
+      redraw()
+      goto continue
+    end
+    if playing_pattern_segment == us.playing_pattern_segment then 
+      goto continue
+    end
+    us.playing_pattern_segment = playing_pattern_segment
+    local start = us.playing_beat
+    local finish = start
+    for j=start,16 do
+      if us.playing_pattern_segment~=up.patterns[us.playing_pattern][j] then 
+        finish = j
+        break
+      end
+    end
+    -- play sample 
+    print("sample_id "..sample_id)
+    local sample_start = up.samples[sample_id].start
+    local sample_end = up.samples[sample_id].start+up.samples[sample_id].length
+    us.playing_sample={sample_start,sample_end}
+    print("sample_start "..sample_start)
+    print("sample_end "..sample_end)
+    softcut.rate(1,up.rate*clock.get_tempo()/up.bpm)
+    softcut.position(1,sample_start)
+    softcut.loop_start(1,sample_start)
+    softcut.loop_end(1,sample_end)
+    softcut.play(1,1)
     -- TODO: figure out position in chain/pattern/sample
     -- TODO: add effects
+    redraw()
     ::continue::
   end
 end
@@ -233,10 +275,10 @@ function sample_one_shot()
   local s=up.samples[us.sample_cur].start
   local e=up.samples[us.sample_cur].start+up.samples[us.sample_cur].length
   clock.run(function()
-    us.samples_playing={s,e}
+    us.playing_sample={s,e}
     redraw()
     clock.sleep(e-s)
-    us.samples_playing={0,0}
+    us.playing_sample={0,0}
     redraw()
   end)
   softcut.rate(2,up.rate*clock.get_tempo()/up.bpm)
@@ -279,6 +321,12 @@ end
 function key(n,z)
   if n==1 then
     us.shift=(z==1)
+  elseif n==3 and z==1 and us.shift then 
+    -- toggle playback
+    us.playing = not us.playing
+    up.playing_sample={0,0}
+    us.playing_beat=0
+    us.playing_pattern=1 -- TODO: should be first in chain
   elseif n==2 and z==1 and us.mode == 0 then
     if up.samples[us.sample_cur].start==us.waveform_view[1] and up.samples[us.sample_cur].start+up.samples[us.sample_cur].length==us.waveform_view[2] then
       update_waveform_view(0,up.length)
@@ -383,6 +431,12 @@ function redraw()
       screen.level(15)
       isactive = true
     end
+    if p[i]==us.playing_pattern_segment and p[i]>0 and us.playing then 
+      screen.level(15)
+    end
+    if p[i]==0 and us.playing and i==us.playing_beat then 
+      screen.level(15)
+    end
     if p[i]~=0 then
       if i>1 and p[i-1]==p[i] then
         if i<16 and p[i+1]==p[i] then
@@ -417,7 +471,7 @@ function redraw()
     for i,s in ipairs(us.waveform_samples) do
       local height=util.round(math.abs(s)*scale)
       local current_time=util.linlin(0,128,us.waveform_view[1],us.waveform_view[2],x_pos)
-      if current_time>us.samples_playing[1] and current_time<us.samples_playing[2] then
+      if current_time>us.playing_sample[1] and current_time<us.playing_sample[2] then
         screen.level(15)
       else
         screen.level(4)
