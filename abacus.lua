@@ -16,7 +16,7 @@
 -- E3 changes pattern (pattern mode)
 -- E3 changes chain position (chain mode)
 -- K1+K2 erases patterns (pattern mode)
--- E3 changes 
+-- E3 changes
 -- docs: https://monome.org/docs/norns/api/modules/softcut.html
 
 --
@@ -39,12 +39,12 @@ us={
   pattern_cur=1,
   chain_cur=1,
   pattern_temp={start=1,length=1},
-  playing=false, -- is playing or not
-  playing_sample={0,0}, -- width of sample being played
-  playing_beat=0, -- current 
+  playing=false,-- is playing or not
+  playing_sample={0,0},-- width of sample being played
+  playing_beat=0,-- current
   playing_chain=1,
-  playing_pattern=0, -- current pattern 
-  playing_pattern_segment=0, -- current sample pattern (sample id + random int decimal)
+  playing_pattern=0,-- current pattern
+  playing_pattern_segment=0,-- current sample pattern (sample id + random int decimal)
   playing_loop_end=0,
 }
 -- user parameters
@@ -133,7 +133,7 @@ function init()
   softcut.event_render(update_render)
 
   -- initialize samples
-  local alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+  local alphabet='ABCDEFGHIJKLMNOPQRSTUVWXYZ'
   for i=1,26 do
     up.samples[i]={}
     up.samples[i].start=0
@@ -156,7 +156,7 @@ function init()
 
   up.filename=uc.code_dir..'sounds/amen.wav'
   load_sample()
-  up.bpm = 120
+  up.bpm=120
   us.sample_cur=2
   up.samples[1].start=0.32
   up.samples[1].length=4*clock.get_beat_sec()/16
@@ -206,63 +206,63 @@ function update_timer()
 end
 
 function update_beat()
-  local current_voice = 1
-  local p = up.patterns[1]
+  local current_voice=1
+  local p=up.patterns[1]
   while true do
     clock.sync(1/16)
     if us.playing==false then goto continue end
     clock.run(function()
-    us.playing_beat = us.playing_beat+1
-    if us.playing_beat > 16 then 
-      us.playing_chain = us.playing_chain + 1
-      if us.playing_chain > #up.chain or up.chain[us.playing_chain]==0 then
-        us.playing_chain = 1
+      us.playing_beat=us.playing_beat+1
+      if us.playing_beat>16 then
+        us.playing_chain=us.playing_chain+1
+        if us.playing_chain>#up.chain or up.chain[us.playing_chain]==0 then
+          us.playing_chain=1
+        end
+        us.pattern_cur=up.chain[us.playing_chain]
+        p=up.patterns[up.chain[us.playing_chain]]
+        us.playing_beat=1
       end
-      us.pattern_cur=up.chain[us.playing_chain]
-      p = up.patterns[up.chain[us.playing_chain]]
-      us.playing_beat=1
-    end
-    -- if silence, continue
-    local playing_pattern_segment = p[us.playing_beat]
-    -- get sample id from the pattern segment
-    local sample_id = math.floor(playing_pattern_segment)
-    if sample_id == 0 then
-      us.playing_pattern_segment = 0
-      us.playing_sample={0,0}
-      redraw()
-return
-    end
-    if playing_pattern_segment == us.playing_pattern_segment then 
-      return
-    end
-    us.playing_pattern_segment = playing_pattern_segment
-    local start = us.playing_beat
-    local finish = start
-    for j=start,16 do
-      if us.playing_pattern_segment~=p[j] then 
-        finish = j
-        break
+      -- if silence, continue
+      local playing_pattern_segment=p[us.playing_beat]
+      -- get sample id from the pattern segment
+      local sample_id=math.floor(playing_pattern_segment)
+      if sample_id==0 then
+        us.playing_pattern_segment=0
+        us.playing_sample={0,0}
+        redraw()
+        return
       end
-    end
-    if start == 16 then 
-      finish = 17 
-    end
-    -- play sample 
-    local sample_start = up.samples[sample_id].start
-    if up.samples[sample_id].start+up.samples[sample_id].length ~= us.playing_loop_end then 
-      us.playing_loop_end = up.samples[sample_id].start+up.samples[sample_id].length
-      softcut.loop_end(1,us.playing_loop_end)
+      if playing_pattern_segment==us.playing_pattern_segment then
+        return
+      end
+      us.playing_pattern_segment=playing_pattern_segment
+      local start=us.playing_beat
+      local finish=start
+      for j=start,16 do
+        if us.playing_pattern_segment~=p[j] then
+          finish=j
+          break
+        end
+      end
+      if start==16 then
+        finish=17
+      end
+      -- play sample
+      local sample_start=up.samples[sample_id].start
+      if up.samples[sample_id].start+up.samples[sample_id].length~=us.playing_loop_end then
+        us.playing_loop_end=up.samples[sample_id].start+up.samples[sample_id].length
+        softcut.loop_end(1,us.playing_loop_end)
+      end
       us.playing_sample={up.samples[sample_id].start,us.playing_loop_end}
-    end
-    softcut.position(1,up.samples[sample_id].start)
-    -- softcut.rate(1,up.rate*clock.get_tempo()/up.bpm)
-    -- softcut.loop_start(1,sample_start)
-    -- softcut.level(1,1)
-    -- softcut.play(1,1)
-    -- TODO: figure out position in chain/pattern/sample
-    -- TODO: add effects
-    redraw()
-  end)
+      softcut.position(1,up.samples[sample_id].start)
+      -- softcut.rate(1,up.rate*clock.get_tempo()/up.bpm)
+      -- softcut.loop_start(1,sample_start)
+      -- softcut.level(1,1)
+      -- softcut.play(1,1)
+      -- TODO: figure out position in chain/pattern/sample
+      -- TODO: add effects
+      redraw()
+    end)
     ::continue::
   end
 end
@@ -283,8 +283,8 @@ end
 
 function pattern_stamp(sampleid,start,length)
   local p=table.clone(up.patterns[us.pattern_cur])
-  rvalue = math.random()
-  for i=start,start+length-1 do 
+  rvalue=math.random()
+  for i=start,start+length-1 do
     p[i]=sampleid+rvalue
   end
   return p
@@ -318,26 +318,26 @@ function sample_one_shot()
 end
 
 function sample_create_playback()
-  local seconds_per_beat = 60/up.bpm
-  local current_position = 80
-  local testone = false
-  for chainit=1,#up.chain do 
+  local seconds_per_beat=60/up.bpm
+  local current_position=80
+  local testone=false
+  for chainit=1,#up.chain do
     local chainid=up.chain[chainit]
-    if chainid == 0 then break end
-    local current_pattern = 0 
-    local p = up.patterns[chainid]
+    if chainid==0 then break end
+    local current_pattern=0
+    local p=up.patterns[chainid]
     for i=1,16 do
-      if p[i] ~= current_pattern then 
-        current_pattern = p[i]
+      if p[i]~=current_pattern then
+        current_pattern=p[i]
         -- copy over buffer
-        if current_pattern > 0 then 
-          sample_id = math.floor(current_pattern)
-          local sample_start = up.samples[sample_id].start
-          local sample_length = up.samples[sample_id].length+clock.get_beat_sec()/16
+        if current_pattern>0 then
+          sample_id=math.floor(current_pattern)
+          local sample_start=up.samples[sample_id].start
+          local sample_length=up.samples[sample_id].length+clock.get_beat_sec()/16
           print("sample_length "..sample_length)
-          if testone == false  then 
+          if testone==false then
             softcut.buffer_copy_mono(1,1,sample_start,current_position,sample_length,0,0)
-            testone=true 
+            testone=true
           end
         end
       end
@@ -356,12 +356,12 @@ end
 --
 
 function enc(n,d)
-  if n==1 and us.shift then 
+  if n==1 and us.shift then
     -- toggle sample/pattern/chain mode
     us.mode=util.clamp(us.mode+sign(d),0,2)
-  elseif n==1 and us.mode <= 1then
+  elseif n==1 and us.mode<=1then
     us.sample_cur=util.clamp(us.sample_cur+sign(d),1,26)
-  elseif n==2 and us.mode == 0 then
+  elseif n==2 and us.mode==0 then
     up.samples[us.sample_cur].start=util.clamp(up.samples[us.sample_cur].start+d/1000,us.waveform_view[1],us.waveform_view[2])
     if up.samples[us.sample_cur].length==0 then
       up.samples[us.sample_cur].length=clock.get_beat_sec()/16
@@ -369,14 +369,14 @@ function enc(n,d)
   elseif n==3 and us.mode==0 then
     local x=d*clock.get_beat_sec()/16
     up.samples[us.sample_cur].length=util.clamp(up.samples[us.sample_cur].length+x,0,us.waveform_view[2]-up.samples[us.sample_cur].start)
-    us.pattern_temp.length = util.round(up.samples[us.sample_cur].length / (clock.get_beat_sec()/16)) 
+    us.pattern_temp.length=util.round(up.samples[us.sample_cur].length/(clock.get_beat_sec()/16))
   elseif n==2 and us.mode==1 then
-    -- change start position 
-    us.pattern_temp.start = util.clamp(us.pattern_temp.start+sign(d),1,16)
-    us.pattern_temp.length = util.round(up.samples[us.sample_cur].length / (clock.get_beat_sec()/16)) 
+    -- change start position
+    us.pattern_temp.start=util.clamp(us.pattern_temp.start+sign(d),1,16)
+    us.pattern_temp.length=util.round(up.samples[us.sample_cur].length/(clock.get_beat_sec()/16))
   elseif n==3 and us.mode==1 then
     -- change pattern
-    us.pattern_cur = util.clamp(us.pattern_cur+sign(d),1,8)
+    us.pattern_cur=util.clamp(us.pattern_cur+sign(d),1,8)
   end
   us.update_ui=true
 end
@@ -384,41 +384,41 @@ end
 function key(n,z)
   if n==1 then
     us.shift=(z==1)
-  elseif n==3 and z==1 and us.shift then 
+  elseif n==3 and z==1 and us.shift then
     -- toggle playback
-    us.playing = not us.playing
-    -- if us.playing then 
+    us.playing=not us.playing
+    -- if us.playing then
     --   sample_create_playback()
     --   softcut.level(1,1)
     -- else
     --   softcut.level(1,0)
-    -- end   
+    -- end
     if us.playing then
-  softcut.rate(1,up.rate*clock.get_tempo()/up.bpm)
-    softcut.level(1,1)
-    softcut.play(1,1)
-  else 
-    softcut.level(1,0) 
-    softcut.play(1,0)
-  end
-  us.playing_chain = 0
-    us.playing_loop_end = 0
+      softcut.rate(1,up.rate*clock.get_tempo()/up.bpm)
+      softcut.level(1,1)
+      softcut.play(1,1)
+    else
+      softcut.level(1,0)
+      softcut.play(1,0)
+    end
+    us.playing_chain=0
+    us.playing_loop_end=0
     us.playing_sample={0,0}
     us.playing_beat=17
     us.playing_pattern=1 -- TODO: should be first in chain
-  elseif n==2 and z==1 and us.mode == 0 then
+  elseif n==2 and z==1 and us.mode==0 then
     if up.samples[us.sample_cur].start==us.waveform_view[1] and up.samples[us.sample_cur].start+up.samples[us.sample_cur].length==us.waveform_view[2] then
       update_waveform_view(0,up.length)
     else
       print("zooming to "..up.samples[us.sample_cur].start..","..up.samples[us.sample_cur].start+up.samples[us.sample_cur].length)
       update_waveform_view(up.samples[us.sample_cur].start,up.samples[us.sample_cur].start+up.samples[us.sample_cur].length)
     end
-  elseif n==2 and z==1 and us.mode ==1 and us.shift then 
-    -- make new pattern 
-    up.patterns[us.pattern_cur][us.pattern_temp.start] = 0
-  elseif n==2 and z==1 and us.mode ==1 then 
-    -- make new pattern 
-    up.patterns[us.pattern_cur] = pattern_stamp(us.sample_cur,us.pattern_temp.start,us.pattern_temp.length)
+  elseif n==2 and z==1 and us.mode==1 and us.shift then
+    -- make new pattern
+    up.patterns[us.pattern_cur][us.pattern_temp.start]=0
+  elseif n==2 and z==1 and us.mode==1 then
+    -- make new pattern
+    up.patterns[us.pattern_cur]=pattern_stamp(us.sample_cur,us.pattern_temp.start,us.pattern_temp.length)
   elseif n==3 and z==1 then
     -- play a sample at curent position
     sample_one_shot()
@@ -473,7 +473,7 @@ function redraw()
     else
       screen.level(4)
     end
-    if i==us.playing_chain and us.playing then 
+    if i==us.playing_chain and us.playing then
       screen.level(15)
     end
     if up.chain[i]>0 then
@@ -488,19 +488,19 @@ function redraw()
 
   -- show pattern
   local p=table.clone(up.patterns[us.pattern_cur])
-  if us.mode ==1 then
+  if us.mode==1 then
     -- fill in temp pattern
-    p = pattern_stamp(us.sample_cur,us.pattern_temp.start,us.pattern_temp.length)
+    p=pattern_stamp(us.sample_cur,us.pattern_temp.start,us.pattern_temp.length)
     -- print("us.pattern_temp.start "..us.pattern_temp.start)
     -- print("us.pattern_temp.length "..us.pattern_temp.length)
     -- rvalue = math.random()
-    -- for i=us.pattern_temp.start,us.pattern_temp.start+us.pattern_temp.length-1 do 
+    -- for i=us.pattern_temp.start,us.pattern_temp.start+us.pattern_temp.length-1 do
     --   p[i]=us.sample_cur+rvalue
     -- end
   end
-  local start = us.pattern_temp.start
-  local finish = us.pattern_temp.start+us.pattern_temp.length
-  if us.shift then 
+  local start=us.pattern_temp.start
+  local finish=us.pattern_temp.start+us.pattern_temp.length
+  if us.shift then
     for i=start+1,finish do
       p[i]=up.patterns[us.pattern_cur][i]
     end
@@ -508,15 +508,15 @@ function redraw()
   end
   for i=1,16 do
     screen.level(4)
-    local isactive = false
-    if i >= start and i < finish and us.mode==1 then
+    local isactive=false
+    if i>=start and i<finish and us.mode==1 then
       screen.level(15)
-      isactive = true
+      isactive=true
     end
-    if p[i]==us.playing_pattern_segment and p[i]>0 and us.playing then 
+    if p[i]==us.playing_pattern_segment and p[i]>0 and us.playing then
       screen.level(15)
     end
-    if p[i]==0 and us.playing and i==us.playing_beat then 
+    if p[i]==0 and us.playing and i==us.playing_beat then
       screen.level(15)
     end
     if p[i]~=0 then
@@ -538,7 +538,7 @@ function redraw()
     else
       screen.rect(1+(i-1)*8,13,7,5)
     end
-    if us.shift and isactive then 
+    if us.shift and isactive then
       screen.rect(1+(i-1)*8,13,7,5)
     end
     screen.fill()
@@ -565,12 +565,12 @@ function redraw()
     end
     screen.level(15)
     for i,s in ipairs(up.samples) do
-      if s.length>0 and (s.start >= us.waveform_view[1] and s.start <= us.waveform_view[2]) then
+      if s.length>0 and (s.start>=us.waveform_view[1] and s.start<=us.waveform_view[2]) then
         x_pos=util.linlin(us.waveform_view[1],us.waveform_view[2],1,128,s.start)
-        if us.waveform_view[1] ~= s.start then 
-            screen.move(x_pos-3,26)
-        else          
-            screen.move(x_pos+4,26)
+        if us.waveform_view[1]~=s.start then
+          screen.move(x_pos-3,26)
+        else
+          screen.move(x_pos+4,26)
         end
         screen.text(up.samples[i].name)
         screen.move(x_pos,29)
@@ -582,10 +582,10 @@ function redraw()
         x_pos=util.linlin(us.waveform_view[1],us.waveform_view[2],1,128,s.start+s.length)
         screen.move(x_pos,29)
         screen.line_rel(0,34)
-      --   if us.waveform_view[1] == s.start then 
-      --   screen.move(x_pos+1,64)
-      --   screen.text(up.samples[i].name)
-      -- end
+        --   if us.waveform_view[1] == s.start then
+        --   screen.move(x_pos+1,64)
+        --   screen.text(up.samples[i].name)
+        -- end
         screen.move(x_pos,62)
         screen.line_rel(-3,3)
         screen.move(x_pos,29)
@@ -680,3 +680,5 @@ end
 function table.clone(org)
   return {table.unpack(org)}
 end
+
+ 
