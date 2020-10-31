@@ -1,5 +1,5 @@
--- ??? v0.1.0
--- ???
+-- abacus v0.1.0
+-- counting frame for music
 --
 -- llllllll.co/t/?
 --
@@ -12,9 +12,11 @@
 -- K3 plays current sample
 -- E1 changes sample (sample+pattern) or pattern (chain)
 -- E2 changes start (sample+pattern), chain position (chain)
--- E3 changes length (sample+pattern), pattern at current chain position (chain)
+-- E3 changes sample length (sample)
+-- E3 changes pattern (pattern mode)
+-- E3 changes chain position (chain mode)
 -- K1+K2 erases patterns (pattern mode)
-
+-- E3 changes 
 -- docs: https://monome.org/docs/norns/api/modules/softcut.html
 
 --
@@ -257,9 +259,10 @@ function enc(n,d)
   elseif n==2 and us.mode==1 then
     -- change start position 
     us.pattern_temp.start = util.clamp(us.pattern_temp.start+sign(d),1,16)
+    us.pattern_temp.length = util.round(up.samples[us.sample_cur].length / (clock.get_beat_sec()/16)) 
   elseif n==3 and us.mode==1 then
-    print(up.samples[us.sample_cur].length/ (clock.get_beat_sec()/16))
-    us.pattern_temp.length = math.floor(util.clamp(us.pattern_temp.length+sign(d),1,up.samples[us.sample_cur].length/ (clock.get_beat_sec()/16)))
+    -- change pattern
+    us.pattern_cur = util.clamp(us.pattern_cur+sign(d),1,8)
   end
   us.update_ui=true
 end
@@ -356,11 +359,19 @@ function redraw()
     --   p[i]=us.sample_cur+rvalue
     -- end
   end
+  local start = us.pattern_temp.start
+  local finish = us.pattern_temp.start+us.pattern_temp.length
+  if us.shift then 
+    for i=start+1,finish do
+      p[i]=up.patterns[us.pattern_cur][i]
+    end
+    finish=start+1
+  end
   for i=1,16 do
     print(p[i])
     screen.level(4)
     local isactive = false
-    if i >= us.pattern_temp.start and i < us.pattern_temp.start+us.pattern_temp.length and us.mode==1 then
+    if i >= start and i < finish and us.mode==1 then
       screen.level(15)
       isactive = true
     end
