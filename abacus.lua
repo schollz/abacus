@@ -194,47 +194,47 @@ function update_beat()
   while true do
     clock.sync(1/16)
     if us.playing==false then goto continue end
-    print(us.playing_beat)
-    us.playing_beat = us.playing_beat+1
-    if us.playing_beat > 16 then 
-      us.playing_beat=1
-    end
-    -- if silence, continue
-    local playing_pattern_segment = up.patterns[us.playing_pattern][us.playing_beat]
-    local sample_id = math.floor(playing_pattern_segment)
-    if sample_id == 0 then
-      us.playing_pattern_segment = 0
-      us.playing_sample={0,0}
-      redraw()
-      goto continue
-    end
-    if playing_pattern_segment == us.playing_pattern_segment then 
-      goto continue
-    end
-    us.playing_pattern_segment = playing_pattern_segment
-    local start = us.playing_beat
-    local finish = start
-    for j=start,16 do
-      if us.playing_pattern_segment~=up.patterns[us.playing_pattern][j] then 
-        finish = j
-        break
-      end
-    end
-    -- play sample 
-    print("sample_id "..sample_id)
-    local sample_start = up.samples[sample_id].start
-    local sample_end = up.samples[sample_id].start+up.samples[sample_id].length
-    us.playing_sample={sample_start,sample_end}
-    print("sample_start "..sample_start)
-    print("sample_end "..sample_end)
-    softcut.rate(1,up.rate*clock.get_tempo()/up.bpm)
-    softcut.position(1,sample_start)
-    softcut.loop_start(1,sample_start)
-    softcut.loop_end(1,sample_end)
-    softcut.play(1,1)
-    -- TODO: figure out position in chain/pattern/sample
-    -- TODO: add effects
-    redraw()
+    -- print(us.playing_beat)
+    -- us.playing_beat = us.playing_beat+1
+    -- if us.playing_beat > 16 then 
+    --   us.playing_beat=1
+    -- end
+    -- -- if silence, continue
+    -- local playing_pattern_segment = up.patterns[us.playing_pattern][us.playing_beat]
+    -- local sample_id = math.floor(playing_pattern_segment)
+    -- if sample_id == 0 then
+    --   us.playing_pattern_segment = 0
+    --   us.playing_sample={0,0}
+    --   redraw()
+    --   goto continue
+    -- end
+    -- if playing_pattern_segment == us.playing_pattern_segment then 
+    --   goto continue
+    -- end
+    -- us.playing_pattern_segment = playing_pattern_segment
+    -- local start = us.playing_beat
+    -- local finish = start
+    -- for j=start,16 do
+    --   if us.playing_pattern_segment~=up.patterns[us.playing_pattern][j] then 
+    --     finish = j
+    --     break
+    --   end
+    -- end
+    -- -- play sample 
+    -- print("sample_id "..sample_id)
+    -- local sample_start = up.samples[sample_id].start
+    -- local sample_end = up.samples[sample_id].start+up.samples[sample_id].length
+    -- us.playing_sample={sample_start,sample_end}
+    -- print("sample_start "..sample_start)
+    -- print("sample_end "..sample_end)
+    -- softcut.rate(1,up.rate*clock.get_tempo()/up.bpm)
+    -- softcut.position(1,sample_start)
+    -- softcut.loop_start(1,sample_start)
+    -- softcut.loop_end(1,sample_end)
+    -- softcut.play(1,1)
+    -- -- TODO: figure out position in chain/pattern/sample
+    -- -- TODO: add effects
+    -- redraw()
     ::continue::
   end
 end
@@ -288,6 +288,30 @@ function sample_one_shot()
   softcut.play(2,1)
 end
 
+function sample_create_playback()
+  local current_pattern = 0 
+  local p = up.patterns[1]
+  local seconds_per_beat = 60/up.bpm
+  for i=1,16 do
+    if p[i] ~= current_pattern then 
+      current_pattern = p[i]
+      -- copy over buffer
+      if current_pattern > 0 then 
+        sample_id = math.floor(current_pattern)
+        local sample_start = up.samples[sample_id].start
+        local sample_length = up.samples[sample_id].length
+        softcut.buffer_copy_mono(1,1,sample_start,80+(i-1)*seconds_per_beat/16,sample_length,0,0)
+      end
+    end
+  end
+  softcut.loop_start(1,80)
+  softcut.loop_end(1,80+seconds_per_beat)
+  softcut.position(1,80)
+  softcut.loop(1,1)
+  softcut.rate(1,up.rate*clock.get_tempo()/up.bpm)
+  softcut.play(1,1)
+end
+
 --
 -- input
 --
@@ -324,9 +348,15 @@ function key(n,z)
   elseif n==3 and z==1 and us.shift then 
     -- toggle playback
     us.playing = not us.playing
-    up.playing_sample={0,0}
-    us.playing_beat=0
-    us.playing_pattern=1 -- TODO: should be first in chain
+    if us.playing then 
+      sample_create_playback()
+      softcut.level(1,1)
+    else
+      softcut.level(1,0)
+    end   
+    -- up.playing_sample={0,0}
+    -- us.playing_beat=0
+    -- us.playing_pattern=1 -- TODO: should be first in chain
   elseif n==2 and z==1 and us.mode == 0 then
     if up.samples[us.sample_cur].start==us.waveform_view[1] and up.samples[us.sample_cur].start+up.samples[us.sample_cur].length==us.waveform_view[2] then
       update_waveform_view(0,up.length)
