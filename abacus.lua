@@ -19,6 +19,8 @@
 -- E3 changes
 -- docs: https://monome.org/docs/norns/api/modules/softcut.html
 
+json = include("lib/json")
+
 --
 -- globals
 --
@@ -46,6 +48,8 @@ us={
   playing_pattern=0,-- current pattern
   playing_pattern_segment=0,-- current sample pattern (sample id + random int decimal)
   playing_loop_end=0,
+  samples_usable={},
+  samples_usable_id=1,
 }
 -- user parameters
 -- put things that can be saved
@@ -66,6 +70,7 @@ uc={
   update_timer_interval=0.05,
   audio_dir=_path.audio..'abacus/',
   code_dir=_path.code..'abacus/',
+  data_dir=_path.data..'abacus/',
 }
 --
 -- initialization
@@ -188,6 +193,7 @@ function init()
   -- up.patterns[4][2]=2
   -- up.patterns[4][3]=2
   -- up.patterns[4][4]=2
+  parameters_load("play.json")
 end
 
 --
@@ -352,6 +358,29 @@ function sample_create_playback()
 end
 
 --
+-- save/load
+--
+function parameters_save(filename)
+  data = json.encode(up)
+  print(data)
+  file = io.open(uc.data_dir..filename,"w+")
+  io.output(file)
+  print(io.write(data))
+  io.close(file)
+end
+
+function parameters_load(filename)
+  filename= uc.data_dir..filename
+  if util.file_exists(filename) then 
+    local f = io.open(filename, "rb")
+    print(f)
+    local content = f:read("*all")
+    up = json.decode(content)
+    f:close()
+  end
+end
+
+--
 -- input
 --
 
@@ -359,8 +388,20 @@ function enc(n,d)
   if n==1 and us.shift then
     -- toggle sample/pattern/chain mode
     us.mode=util.clamp(us.mode+sign(d),0,2)
-  elseif n==1 and us.mode<=1then
+    if us.mode==1 then 
+      -- figure out which samples are usable
+      us.samples_usable={}
+      for i=1,#up.samples do 
+        if up.samples[i].length > 0 then 
+          table.insert(us.samples_usable,i)
+        end 
+      end
+    end
+  elseif n==1 and us.mode==0 then
     us.sample_cur=util.clamp(us.sample_cur+sign(d),1,26)
+  elseif n==1 and us.mode==1 then
+    -- change pattern
+    us.pattern_cur=util.clamp(us.pattern_cur+sign(d),1,8)
   elseif n==2 and us.mode==0 then
     up.samples[us.sample_cur].start=util.clamp(up.samples[us.sample_cur].start+d/100,0,up.length)
     if up.samples[us.sample_cur].length==0 then
@@ -377,12 +418,12 @@ function enc(n,d)
     end
     us.pattern_temp.length=util.round(up.samples[us.sample_cur].length/(clock.get_beat_sec()/4))
   elseif n==2 and us.mode==1 then
+    us.samples_usable_id=util.clamp(us.samples_usable_id+sign(d),1,#us.samples_usable)
+    us.sample_cur=us.samples_usable[us.samples_usable_id]
+  elseif n==3 and us.mode==1 then
     -- change start position
     us.pattern_temp.start=util.clamp(us.pattern_temp.start+sign(d),1,16)
     us.pattern_temp.length=util.round(up.samples[us.sample_cur].length/(clock.get_beat_sec()/4))
-  elseif n==3 and us.mode==1 then
-    -- change pattern
-    us.pattern_cur=util.clamp(us.pattern_cur+sign(d),1,8)
   end
   us.update_ui=true
 end
@@ -392,6 +433,7 @@ function key(n,z)
     us.shift=(z==1)
   elseif n==3 and z==1 and us.shift then
     -- toggle playback
+    parameters_save("play.json")
     us.playing=not us.playing
     -- if us.playing then
     --   sample_create_playback()
