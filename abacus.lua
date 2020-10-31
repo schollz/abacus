@@ -154,40 +154,40 @@ function init()
   timer.event=update_timer
   timer:start()
 
-  up.filename=uc.code_dir..'sounds/amen.wav'
+  up.filename=uc.code_dir..'sounds/rach1.wav'
   load_sample()
   up.bpm=120
-  us.sample_cur=2
-  up.samples[1].start=0.32
-  up.samples[1].length=4*clock.get_beat_sec()/16
-  up.samples[2].start=0
-  up.samples[2].length=4*clock.get_beat_sec()/16
-  up.samples[3].start=0.591
-  up.samples[3].length=2*clock.get_beat_sec()/16
-  up.patterns[1][1]=2
-  up.patterns[1][2]=2
-  up.patterns[1][3]=2
-  up.patterns[1][4]=2
-  up.patterns[1][7]=1
-  up.patterns[1][8]=1
-  up.patterns[1][9]=1
-  up.patterns[1][10]=1
-  up.patterns[1][13]=3.1
-  up.patterns[1][14]=3.1
+  -- us.sample_cur=2
+  -- up.samples[1].start=0.32
+  -- up.samples[1].length=4*clock.get_beat_sec()/4
+  -- up.samples[2].start=0
+  -- up.samples[2].length=4*clock.get_beat_sec()/4
+  -- up.samples[3].start=0.591
+  -- up.samples[3].length=2*clock.get_beat_sec()/4
+  -- up.patterns[1][1]=2
+  -- up.patterns[1][2]=2
+  -- up.patterns[1][3]=2
+  -- up.patterns[1][4]=2
+  -- up.patterns[1][7]=1
+  -- up.patterns[1][8]=1
+  -- up.patterns[1][9]=1
+  -- up.patterns[1][10]=1
+  -- up.patterns[1][13]=3.1
+  -- up.patterns[1][14]=3.1
   -- up.patterns[1][15]=3.2
   -- up.patterns[1][16]=3.2
-  up.patterns[2][1]=2
-  up.patterns[2][2]=2
-  up.patterns[2][3]=2
-  up.patterns[2][4]=2
-  up.patterns[3][1]=2
-  up.patterns[3][2]=2
-  up.patterns[3][3]=2
-  up.patterns[3][4]=2
-  up.patterns[4][1]=2
-  up.patterns[4][2]=2
-  up.patterns[4][3]=2
-  up.patterns[4][4]=2
+  -- up.patterns[2][1]=2
+  -- up.patterns[2][2]=2
+  -- up.patterns[2][3]=2
+  -- up.patterns[2][4]=2
+  -- up.patterns[3][1]=2
+  -- up.patterns[3][2]=2
+  -- up.patterns[3][3]=2
+  -- up.patterns[3][4]=2
+  -- up.patterns[4][1]=2
+  -- up.patterns[4][2]=2
+  -- up.patterns[4][3]=2
+  -- up.patterns[4][4]=2
 end
 
 --
@@ -209,7 +209,7 @@ function update_beat()
   local current_voice=1
   local p=up.patterns[1]
   while true do
-    clock.sync(1/16)
+    clock.sync(1/4)
     if us.playing==false then goto continue end
     clock.run(function()
       us.playing_beat=us.playing_beat+1
@@ -333,7 +333,7 @@ function sample_create_playback()
         if current_pattern>0 then
           sample_id=math.floor(current_pattern)
           local sample_start=up.samples[sample_id].start
-          local sample_length=up.samples[sample_id].length+clock.get_beat_sec()/16
+          local sample_length=up.samples[sample_id].length+clock.get_beat_sec()/4
           print("sample_length "..sample_length)
           if testone==false then
             softcut.buffer_copy_mono(1,1,sample_start,current_position,sample_length,0,0)
@@ -362,18 +362,24 @@ function enc(n,d)
   elseif n==1 and us.mode<=1then
     us.sample_cur=util.clamp(us.sample_cur+sign(d),1,26)
   elseif n==2 and us.mode==0 then
-    up.samples[us.sample_cur].start=util.clamp(up.samples[us.sample_cur].start+d/1000,us.waveform_view[1],us.waveform_view[2])
+    up.samples[us.sample_cur].start=util.clamp(up.samples[us.sample_cur].start+d/100,0,up.length)
     if up.samples[us.sample_cur].length==0 then
-      up.samples[us.sample_cur].length=clock.get_beat_sec()/16
+      up.samples[us.sample_cur].length=clock.get_beat_sec()/4
+    end
+    if up.samples[us.sample_cur].start< us.waveform_view[1] then
+      update_waveform_view(up.samples[us.sample_cur].start,up.samples[us.sample_cur].start+up.samples[us.sample_cur].length)
     end
   elseif n==3 and us.mode==0 then
-    local x=d*clock.get_beat_sec()/16
-    up.samples[us.sample_cur].length=util.clamp(up.samples[us.sample_cur].length+x,0,us.waveform_view[2]-up.samples[us.sample_cur].start)
-    us.pattern_temp.length=util.round(up.samples[us.sample_cur].length/(clock.get_beat_sec()/16))
+    local x=d*clock.get_beat_sec()/4
+    up.samples[us.sample_cur].length=util.clamp(up.samples[us.sample_cur].length+x,0,up.length-up.samples[us.sample_cur].start)
+    if up.samples[us.sample_cur].start+up.samples[us.sample_cur].length > us.waveform_view[2] then
+      update_waveform_view(up.samples[us.sample_cur].start,up.samples[us.sample_cur].start+up.samples[us.sample_cur].length)
+    end
+    us.pattern_temp.length=util.round(up.samples[us.sample_cur].length/(clock.get_beat_sec()/4))
   elseif n==2 and us.mode==1 then
     -- change start position
     us.pattern_temp.start=util.clamp(us.pattern_temp.start+sign(d),1,16)
-    us.pattern_temp.length=util.round(up.samples[us.sample_cur].length/(clock.get_beat_sec()/16))
+    us.pattern_temp.length=util.round(up.samples[us.sample_cur].length/(clock.get_beat_sec()/4))
   elseif n==3 and us.mode==1 then
     -- change pattern
     us.pattern_cur=util.clamp(us.pattern_cur+sign(d),1,8)
@@ -565,7 +571,7 @@ function redraw()
     end
     screen.level(15)
     for i,s in ipairs(up.samples) do
-      if s.length>0 and (s.start>=us.waveform_view[1] and s.start<=us.waveform_view[2]) then
+      if i==us.sample_cur and s.length>0 and (s.start>=us.waveform_view[1] and s.start<=us.waveform_view[2]) then
         x_pos=util.linlin(us.waveform_view[1],us.waveform_view[2],1,128,s.start)
         if us.waveform_view[1]~=s.start then
           screen.move(x_pos-3,26)
