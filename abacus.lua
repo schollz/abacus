@@ -319,7 +319,7 @@ function sample_one_shot()
     us.playing_sample={0,0}
     redraw()
   end)
-  softcut.rate(2,up.rate*clock.get_tempo()/up.bpm)
+  softcut.rate(2,up.rate)
   softcut.position(2,s)
   softcut.loop_start(2,s)
   softcut.loop_end(2,e)
@@ -356,7 +356,7 @@ function sample_create_playback()
   softcut.loop_end(1,current_position)
   softcut.position(1,80)
   softcut.loop(1,1)
-  softcut.rate(1,up.rate*clock.get_tempo()/up.bpm)
+  softcut.rate(1,up.rate)
   softcut.play(1,1)
 end
 
@@ -437,7 +437,18 @@ function enc(n,d)
     end
     us.chain_cur = util.clamp(us.chain_cur+sign(d),1,last_chain)
   elseif n==3 and us.mode==2 then 
-    up.chain[us.chain_cur] = util.clamp(up.chain[us.chain_cur]+sign(d),0,16)
+    local last_chain = 1
+    for i=1,#up.chain do
+      if up.chain[i]==0 then
+        last_chain=i
+        break
+      end
+    end
+    min_chain = 1 
+    if us.chain_cur >= last_chain-1  then 
+      min_chain=0
+    end
+    up.chain[us.chain_cur] = util.clamp(up.chain[us.chain_cur]+sign(d),min_chain,9)
   end
   us.update_ui=true
 end
@@ -456,7 +467,7 @@ function key(n,z)
     --   softcut.level(1,0)
     -- end
     if us.playing then
-      softcut.rate(1,up.rate*clock.get_tempo()/up.bpm)
+      softcut.rate(1,up.rate)
       softcut.level(1,1)
       softcut.play(1,1)
     else
@@ -549,7 +560,7 @@ function redraw()
       if up.chain[i] > 0 then
         screen.text(up.chain[i])
       else 
-        screen.text("?")
+        screen.text(" ")
       end
     end
   end
