@@ -62,7 +62,7 @@ up={
   bpm=0,
   samples={},
   patterns={},
-  chain={1,2,3,4,0,0,0,0,0,0,0,0,0,0,0,0},
+  chain={1,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
 }
 
 -- user constants
@@ -235,6 +235,7 @@ function update_beat()
       if sample_id==0 then
         us.playing_pattern_segment=0
         us.playing_sample={0,0}
+        us.playing_sampleid=0
         redraw()
         return
       end
@@ -259,6 +260,7 @@ function update_beat()
         us.playing_loop_end=up.samples[sample_id].start+up.samples[sample_id].length
         softcut.loop_end(1,us.playing_loop_end)
       end
+      us.playing_sampleid=sample_id
       us.playing_sample={up.samples[sample_id].start,us.playing_loop_end}
       softcut.position(1,up.samples[sample_id].start)
       -- softcut.rate(1,up.rate*clock.get_tempo()/up.bpm)
@@ -613,7 +615,7 @@ function redraw()
     end
     screen.level(15)
     for i,s in ipairs(up.samples) do
-      if i==us.sample_cur and s.length>0 and (s.start>=us.waveform_view[1] and s.start<=us.waveform_view[2]) then
+      if (i==us.sample_cur or i==us.playing_sampleid) and s.length>0 and (s.start>=us.waveform_view[1] and s.start<=us.waveform_view[2]) then
         x_pos=util.linlin(us.waveform_view[1],us.waveform_view[2],1,128,s.start)
         if us.waveform_view[1]~=s.start then
           screen.move(x_pos-3,26)
