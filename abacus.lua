@@ -194,6 +194,7 @@ function init()
   -- up.patterns[4][3]=2
   -- up.patterns[4][4]=2
   parameters_load("play.json")
+  us.mode=2
 end
 
 --
@@ -426,6 +427,17 @@ function enc(n,d)
     -- change start position
     us.pattern_temp.start=util.clamp(us.pattern_temp.start+sign(d),1,16)
     us.pattern_temp.length=util.round(up.samples[us.sample_cur].length/(clock.get_beat_sec()/4))
+  elseif n==2 and us.mode==2 then 
+    local last_chain = 1
+    for i=1,#up.chain do
+      if up.chain[i]==0 then
+        last_chain=i
+        break
+      end
+    end
+    us.chain_cur = util.clamp(us.chain_cur+sign(d),1,last_chain)
+  elseif n==3 and us.mode==2 then 
+    up.chain[us.chain_cur] = util.clamp(up.chain[us.chain_cur]+sign(d),0,16)
   end
   us.update_ui=true
 end
@@ -517,6 +529,7 @@ function redraw()
   screen.text(us.pattern_cur)
 
   -- show chain info
+  local last_position=0
   for i=1,#up.chain do
     if i==us.chain_cur and us.mode==2 then
       screen.level(15)
@@ -526,15 +539,25 @@ function redraw()
     if i==us.playing_chain and us.playing then
       screen.level(15)
     end
-    if up.chain[i]>0 then
+    if up.chain[i]>0 or us.chain_cur==i then
       isone=0
       if up.chain[i]==1 then
         isone=1
       end
-      screen.move(19+(i-1)*7+isone,7)
-      screen.text(up.chain[i])
+      last_position = i
+      screen.move(21+(i-1)*7+isone+shift_amount,7+shift_amount)
+      if up.chain[i] > 0 then
+        screen.text(up.chain[i])
+      else 
+        screen.text("?")
+      end
     end
   end
+  if us.mode==2 then 
+    screen.level(15)
+  end
+  screen.rect(19+shift_amount,1+shift_amount,21+(last_position-1)*7-13,8)
+  screen.stroke()
 
   -- show pattern
   local p=table.clone(up.patterns[us.pattern_cur])
