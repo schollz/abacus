@@ -23,7 +23,7 @@
 
 -- user state
 us={
-  mode=0,-- 0=sampler,1=pattern,2==chain
+  mode=1,-- 0=sampler,1=pattern,2==chain
   shift=false,
   update_ui=false,
   zoomed=false,
@@ -38,6 +38,7 @@ us={
   pattern_cur=1,
   chain_cur=1,
   samples_playing={0,0},
+  pattern_temp={start=1,length=1},
 }
 -- user parameters
 -- put things that can be saved
@@ -125,12 +126,13 @@ function init()
   softcut.event_render(update_render)
 
   -- initialize samples
-	local alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+  local alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
   for i=1,26 do
     up.samples[i]={}
     up.samples[i].start=0
     up.samples[i].length=0
     up.samples[i].name=alphabet:sub(i,i)
+    print(up.samples[i].name)
   end
   for i=1,8 do
     up.patterns[i]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
@@ -148,7 +150,8 @@ function init()
 
   up.filename=uc.code_dir..'sounds/amen.wav'
   load_sample()
-  up.samples[1]={start=0.3,length=0.2}
+  up.samples[1].start=0.3
+  up.samples[1].length=0.2
   up.patterns[1][1]=3
   up.patterns[1][2]=4
   up.patterns[1][3]=4
@@ -224,16 +227,19 @@ end
 --
 
 function enc(n,d)
-  if n==1 then
-    us.sample_cur=util.clamp(us.sample_cur+sign(d),1,9)
-  elseif n==2 then
+  if n==1 and us.mode <= 1then
+    us.sample_cur=util.clamp(us.sample_cur+sign(d),1,26)
+  elseif n==2 and us.mode == 0 then
     up.samples[us.sample_cur].start=util.clamp(up.samples[us.sample_cur].start+d/1000,us.waveform_view[1],us.waveform_view[2])
-    if up.samples[us.sample_cur]==0 then
-      up.samples[us.sample_cur]=clock.get_beat_sec()/16
+    if up.samples[us.sample_cur].length==0 then
+      up.samples[us.sample_cur].length=clock.get_beat_sec()/16
     end
-  elseif n==3 then
+  elseif n==3 and us.mode==0 then
     local x=d*clock.get_beat_sec()/16
     up.samples[us.sample_cur].length=util.clamp(up.samples[us.sample_cur].length+x,0,us.waveform_view[2]-up.samples[us.sample_cur].start)
+    us.pattern_temp.length = util.round(up.samples[us.sample_cur].length / (clock.get_beat_sec()/16)) 
+  elseif n==2 and us.mode==1 then
+    us.pattern_temp.start = util.clamp(us.pattern_temp.start+sign(d),1,16)
   end
   us.update_ui=true
 end
@@ -258,6 +264,7 @@ function key(n,z)
     -- play a sample at curent position
     sample_one_shot()
   end
+  us.update_ui=true
 end
 
 --
@@ -275,21 +282,29 @@ function redraw()
   end
 
   -- show sample info
-  screen.level(15)
-  screen.rect(1,1,7,8)
+  if us.mode==0 then
+    screen.level(15)
+  else
+    screen.level(4)
+  end
+  screen.rect(1+shift_amount,1+shift_amount,7,8)
   screen.stroke()
-  screen.move(2,7)
+  screen.move(2+shift_amount,7+shift_amount)
   screen.text(up.samples[us.sample_cur].name)
 
   -- show pattern info
-  screen.level(4)
-  screen.rect(10,1,7,8)
+  if us.mode==1 then
+    screen.level(15)
+  else
+    screen.level(4)
+  end
+  screen.rect(10+shift_amount,1+shift_amount,7,8)
   screen.stroke()
   isone=0
   if us.pattern_cur==1 then
     isone=1
   end
-  screen.move(11+isone,7)
+  screen.move(11+isone+shift_amount,7+shift_amount)
   screen.text(us.pattern_cur)
 
   -- show chain info
@@ -310,10 +325,19 @@ function redraw()
   end
 
   -- show pattern
-  local p=up.patterns[us.pattern_cur]
+  local p=table.clone(up.patterns[us.pattern_cur])
+  if us.mode ==1 then
+    -- fill in temp pattern
+    print("us.pattern_temp.start "..us.pattern_temp.start)
+    print("us.pattern_temp.length "..us.pattern_temp.length)
+    for i=us.pattern_temp.start,us.pattern_temp.start+us.pattern_temp.length do 
+      p[i]=us.sample_cur
+    end
+  end
   for i=1,16 do
+    print(p[i])
     screen.level(4)
-    if p[i]==us.sample_cur and us.mode==1 then
+    if i >= us.pattern_temp.start and i <= us.pattern_temp.length and us.mode==1 then
       screen.level(15)
     end
     if p[i]~=0 then
@@ -361,7 +385,7 @@ function redraw()
     for i,s in ipairs(up.samples) do
       if s.length>0 then
         x_pos=util.linlin(us.waveform_view[1],us.waveform_view[2],1,128,s.start)
-        screen.move(x_pos-1,26)
+        screen.move(x_pos-3,26)
         screen.text(up.samples[i].name)
         screen.move(x_pos,29)
         screen.line_rel(0,34)
@@ -460,7 +484,11 @@ function load_file(file)
   duration=samples/48000.0
   softcut.buffer_read_mono(file,0,0,-1,1,1)
   print("loaded "..file.." sr="..samplerate..", duration="..duration)
-  local bpm=clock.get_bpm()
+  local bpm=clock.get_tempo()
   -- TODO: get bpm from file
   return duration,rate,bpm
+end
+
+function table.clone(org)
+  return {table.unpack(org)}
 end
