@@ -174,7 +174,7 @@ function init()
   timer.event=update_timer
   timer:start()
 
-  up.filename=uc.code_dir..'sounds/rach1.wav'
+  up.filename=uc.code_dir..'sounds/Amen-break.wav'
   load_sample()
   up.bpm=120
   -- us.sample_cur=2
@@ -209,7 +209,7 @@ function init()
   -- up.patterns[4][3]=2
   -- up.patterns[4][4]=2
   parameters_load("play.json")
-  us.mode=2
+  us.mode=0
 end
 
 --
@@ -483,6 +483,7 @@ function enc(n,d)
           table.insert(us.samples_usable,i)
         end
       end
+      us.pattern_temp.length=util.round(up.samples[us.sample_cur].length/(clock.get_beat_sec()/4))
     end
   elseif n==1 and us.mode==0 then
     us.sample_cur=util.clamp(us.sample_cur+sign(d),1,26)
@@ -490,7 +491,8 @@ function enc(n,d)
     -- change pattern
     us.pattern_cur=util.clamp(us.pattern_cur+sign(d),1,8)
   elseif n==2 and us.mode==0 then
-    up.samples[us.sample_cur].start=util.clamp(up.samples[us.sample_cur].start+d/100,0,up.length)
+    local x = d*up.length/500
+    up.samples[us.sample_cur].start=util.clamp(up.samples[us.sample_cur].start+x,0,up.length)
     if up.samples[us.sample_cur].length==0 then
       up.samples[us.sample_cur].length=clock.get_beat_sec()/4
     end
@@ -498,7 +500,8 @@ function enc(n,d)
       update_waveform_view(up.samples[us.sample_cur].start,up.samples[us.sample_cur].start+up.samples[us.sample_cur].length)
     end
   elseif n==3 and us.mode==0 then
-    local x=d*clock.get_beat_sec()/4
+    -- local x=d*clock.get_beat_sec()/4
+    local x = d*up.length/500
     up.samples[us.sample_cur].length=util.clamp(up.samples[us.sample_cur].length+x,0,up.length-up.samples[us.sample_cur].start)
     if up.samples[us.sample_cur].start+up.samples[us.sample_cur].length>us.waveform_view[2] then
       update_waveform_view(up.samples[us.sample_cur].start,up.samples[us.sample_cur].start+up.samples[us.sample_cur].length)
@@ -507,6 +510,7 @@ function enc(n,d)
   elseif n==2 and us.mode==1 then
     us.samples_usable_id=util.clamp(us.samples_usable_id+sign(d),1,#us.samples_usable)
     us.sample_cur=us.samples_usable[us.samples_usable_id]
+    us.pattern_temp.length=util.round(up.samples[us.sample_cur].length/(clock.get_beat_sec()/4))
   elseif n==3 and us.mode==1 then
     -- change start position
     us.pattern_temp.start=util.clamp(us.pattern_temp.start+sign(d),1,16)
@@ -540,10 +544,6 @@ end
 function key(n,z)
   if n==1 then
     us.shift=(z==1)
-  elseif n==2 and z==1 and us.shift then
-    -- us.effect_reverse=true
-    us.effect_stutter=true
-    us.effect_on=true
   elseif n==3 and z==1 and us.shift then
     -- toggle playback
     parameters_save("play.json")
@@ -663,8 +663,8 @@ function redraw()
   if us.mode==1 then
     -- fill in temp pattern
     p=pattern_stamp(us.sample_cur,us.pattern_temp.start,us.pattern_temp.length)
-    -- print("us.pattern_temp.start "..us.pattern_temp.start)
-    -- print("us.pattern_temp.length "..us.pattern_temp.length)
+    print("us.pattern_temp.start "..us.pattern_temp.start)
+    print("us.pattern_temp.length "..us.pattern_temp.length)
     -- rvalue = math.random()
     -- for i=us.pattern_temp.start,us.pattern_temp.start+us.pattern_temp.length-1 do
     --   p[i]=us.sample_cur+rvalue
