@@ -20,8 +20,8 @@
 -- docs: https://monome.org/docs/norns/api/modules/softcut.html
 
 json=include("lib/json")
-local ControlSpec = require 'controlspec'
-local Formatters = require 'formatters'
+local ControlSpec=require 'controlspec'
+local Formatters=require 'formatters'
 --
 -- globals
 --
@@ -87,40 +87,40 @@ function init()
   -- us.available_files={'amenbreak.wav'}
   -- us.available_saves={''}
 
- local specs = {}
-  specs.AMP = ControlSpec.new(0, 1, 'lin', 0, 1, '')
-  specs.FILTER_FREQ = ControlSpec.new(20, 20000, 'exp', 0, 20000, 'Hz')
-  specs.FILTER_RESONANCE = ControlSpec.new(0.05, 1, 'lin', 0, 0.25, '')
-  specs.PERCENTAGEADD = ControlSpec.new(-1, 1, 'lin', 0.01, 0, '%')
-  specs.PERCENTAGE = ControlSpec.new(0, 1, 'lin', 0.01, 0, '%')
+  local specs={}
+  specs.AMP=ControlSpec.new(0,1,'lin',0,1,'')
+  specs.FILTER_FREQ=ControlSpec.new(20,20000,'exp',0,20000,'Hz')
+  specs.FILTER_RESONANCE=ControlSpec.new(0.05,1,'lin',0,0.25,'')
+  specs.PERCENTAGEADD=ControlSpec.new(-1,1,'lin',0.01,0,'%')
+  specs.PERCENTAGE=ControlSpec.new(0,1,'lin',0.01,0,'%')
 
- params:add{
-    type = 'control',
-    id ='global_rate',
-    name = 'global rate',
-    controlspec = specs.PERCENTAGEADD,
-    formatter = Formatters.percentage,
+  params:add{
+    type='control',
+    id='global_rate',
+    name='global rate',
+    controlspec=specs.PERCENTAGEADD,
+    formatter=Formatters.percentage,
     action=function(x)
-    for i=1,3 do
-  softcut.rate(i,up.rate+x)
-end
+      for i=1,3 do
+        softcut.rate(i,up.rate+x)
+      end
     end
   }
 
- params:add{
-    type = 'control',
-    id ='effect_stutter',
-    name = 'effect stutter',
-    controlspec = specs.PERCENTAGE,
-    formatter = Formatters.percentage,
+  params:add{
+    type='control',
+    id='effect_stutter',
+    name='effect stutter',
+    controlspec=specs.PERCENTAGE,
+    formatter=Formatters.percentage,
   }
 
- params:add{
-    type = 'control',
-    id ='effect_reverse',
-    name = 'effect reverse',
-    controlspec = specs.PERCENTAGE,
-    formatter = Formatters.percentage,
+  params:add{
+    type='control',
+    id='effect_reverse',
+    name='effect reverse',
+    controlspec=specs.PERCENTAGE,
+    formatter=Formatters.percentage,
   }
   -- parameters
   -- params:add {
@@ -278,46 +278,46 @@ function update_beat()
   while true do
     clock.sync(1/4)
     if us.playing==false then goto continue end
-      clock.run(function()
-    us.playing_beat=us.playing_beat+1
-    if us.playing_beat>16 then
-      us.playing_chain=us.playing_chain+1
-      if us.playing_chain>#up.chain or up.chain[us.playing_chain]==0 then
-        us.playing_chain=1
+    clock.run(function()
+      us.playing_beat=us.playing_beat+1
+      if us.playing_beat>16 then
+        us.playing_chain=us.playing_chain+1
+        if us.playing_chain>#up.chain or up.chain[us.playing_chain]==0 then
+          us.playing_chain=1
+        end
+        us.pattern_cur=up.chain[us.playing_chain]
+        p=up.patterns[up.chain[us.playing_chain]]
+        us.playing_beat=1
       end
-      us.pattern_cur=up.chain[us.playing_chain]
-      p=up.patterns[up.chain[us.playing_chain]]
-      us.playing_beat=1
-    end
-    -- if silence, continue
-    local playing_pattern_segment=p[us.playing_beat]
-    -- get sample id from the pattern segment
-    local sample_id=math.floor(playing_pattern_segment)
+      -- if silence, continue
+      local playing_pattern_segment=p[us.playing_beat]
+      -- get sample id from the pattern segment
+      local sample_id=math.floor(playing_pattern_segment)
 
-    -- do effects
-    effect_stutter = math.random()<params:get("effect_stutter")
-    effect_reverse = math.random()<params:get("effect_reverse")
-    if effect_stutter or effect_reverse then
-      us.effect_on=false
-      if us.playing_sampleid>0 then
-        print(us.playing_position)
-        rate=1
-        if effect_stutter then
-          print("stutter")
-          softcut.loop(3,1)
-          local stutter_amount=math.random(4)
-          softcut.loop_end(3,us.playing_position+clock.get_beat_sec()/(64.0/stutter_amount))
-          softcut.loop_start(3,us.playing_position-clock.get_beat_sec()/(64.0/stutter_amount))
-        else
-          softcut.loop_start(3,0)
-          softcut.loop_end(3,up.length)
-        end
-        if effect_reverse then
-          print("reverse")
-          rate=-1
-        end
-        softcut.rate(3,rate*up.rate+params:get("global_rate"))
-        softcut.position(3,us.playing_position)
+      -- do effects
+      effect_stutter=math.random()<params:get("effect_stutter")
+      effect_reverse=math.random()<params:get("effect_reverse")
+      if effect_stutter or effect_reverse then
+        us.effect_on=false
+        if us.playing_sampleid>0 then
+          print(us.playing_position)
+          rate=1
+          if effect_stutter then
+            print("stutter")
+            softcut.loop(3,1)
+            local stutter_amount=math.random(4)
+            softcut.loop_end(3,us.playing_position+clock.get_beat_sec()/(64.0/stutter_amount))
+            softcut.loop_start(3,us.playing_position-clock.get_beat_sec()/(64.0/stutter_amount))
+          else
+            softcut.loop_start(3,0)
+            softcut.loop_end(3,up.length)
+          end
+          if effect_reverse then
+            print("reverse")
+            rate=-1
+          end
+          softcut.rate(3,rate*up.rate+params:get("global_rate"))
+          softcut.position(3,us.playing_position)
           if us.effect_reverse then
             for i=1,10 do
               softcut.level(3,i/10.0)
@@ -331,8 +331,8 @@ function update_beat()
           clock.sleep(clock.get_beat_sec()/4*(2+math.random(8)))
           softcut.level(1,1)
           softcut.level(3,0)
-      end
-    elseif not us.effect_on then
+        end
+      elseif not us.effect_on then
         if sample_id==0 then
           us.playing_pattern_segment=0
           us.playing_sample={0,0}
@@ -371,8 +371,8 @@ function update_beat()
         -- TODO: figure out position in chain/pattern/sample
         -- TODO: add effects
         redraw()
-    end
-      end)
+      end
+    end)
     ::continue::
   end
 end
@@ -508,7 +508,7 @@ function enc(n,d)
     -- change pattern
     us.pattern_cur=util.clamp(us.pattern_cur+sign(d),1,8)
   elseif n==2 and us.mode==0 then
-    local x = d*up.length/1000
+    local x=d*up.length/1000
     up.samples[us.sample_cur].start=util.clamp(up.samples[us.sample_cur].start+x,0,up.length)
     if up.samples[us.sample_cur].length==0 then
       up.samples[us.sample_cur].length=clock.get_beat_sec()/4
@@ -518,7 +518,7 @@ function enc(n,d)
     end
   elseif n==3 and us.mode==0 then
     -- local x=d*clock.get_beat_sec()/4
-    local x = d*up.length/1000
+    local x=d*up.length/1000
     up.samples[us.sample_cur].length=util.clamp(up.samples[us.sample_cur].length+x,0,up.length-up.samples[us.sample_cur].start)
     if up.samples[us.sample_cur].start+up.samples[us.sample_cur].length>us.waveform_view[2] then
       update_waveform_view(up.samples[us.sample_cur].start,up.samples[us.sample_cur].start+up.samples[us.sample_cur].length)
@@ -561,9 +561,9 @@ end
 function key(n,z)
   if n==1 then
     us.shift=(z==1)
-  elseif n==2 and z==1 and us.shift then 
-    us.effect_stutter = (math.random()<0.5)
-    us.effect_reverse = not us.effect_stutter
+  elseif n==2 and z==1 and us.shift then
+    us.effect_stutter=(math.random()<0.5)
+    us.effect_reverse=not us.effect_stutter
     us.effect_on=true
   elseif n==3 and z==1 and us.shift then
     -- toggle playback
