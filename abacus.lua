@@ -1,7 +1,7 @@
 -- abacus v0.1.0
 -- sequence rows of samples
 -- with calculated beats.
--- 
+--
 -- llllllll.co/t/abacus
 --
 --
@@ -9,22 +9,22 @@
 -- K1+E1 changes mode
 -- K1+K3 starts/stops chain
 --
--- sample mode 
+-- sample mode
 -- E1 changes sample
 -- E2/E3 change splice position
--- K2 zooms 
+-- K2 zooms
 -- K3 plays sample
 --
 -- pattern mode
 -- K2 patterns
 -- K1+K2 erases pattern
 -- E1 changes pattern
--- E2 selects sample 
+-- E2 selects sample
 -- E3 positions sample
 --
 -- chain mode
--- E2 positions 
--- E3 selects pattern 
+-- E2 positions
+-- E3 selects pattern
 -- K2/K3 do effects
 
 json=include("lib/json")
@@ -131,28 +131,28 @@ function init()
     formatter=Formatters.percentage,
   }
 
-    params:add {
-    type = 'control',
-    id = 'filter_frequency',
-    name = 'Filter Cutoff',
-    controlspec = specs.FILTER_FREQ,
-    formatter = Formatters.format_freq,
-    action = function(value)
-    for i=1,3 do
-      softcut.post_filter_fc(i, value)
-    end
+  params:add {
+    type='control',
+    id='filter_frequency',
+    name='Filter Cutoff',
+    controlspec=specs.FILTER_FREQ,
+    formatter=Formatters.format_freq,
+    action=function(value)
+      for i=1,3 do
+        softcut.post_filter_fc(i,value)
+      end
     end
   }
 
   params:add {
-    type = 'control',
-    id = 'filter_reso',
-    name = 'Filter Resonance',
-    controlspec = specs.FILTER_RESONANCE,
-    action = function(value)
-    for i=1,3 do
-      softcut.post_filter_rq(i, value)
-    end
+    type='control',
+    id='filter_reso',
+    name='Filter Resonance',
+    controlspec=specs.FILTER_RESONANCE,
+    action=function(value)
+      for i=1,3 do
+        softcut.post_filter_rq(i,value)
+      end
     end
   }
   -- parameters
