@@ -48,8 +48,13 @@ us={
   playing_pattern=0,-- current pattern
   playing_pattern_segment=0,-- current sample pattern (sample id + random int decimal)
   playing_loop_end=0,
+  playing_position=0,
+  playing_sampleid=0,
   samples_usable={},
   samples_usable_id=1,
+  effect_on=false,
+  effect_stutter=false,
+  effect_reverse=false,
 }
 -- user parameters
 -- put things that can be saved
@@ -126,7 +131,7 @@ function init()
   -- TODO: add individual parameters for pitching up/down specific samples
 
   -- initialize softcut
-  for i=1,2 do
+  for i=1,3 do
     softcut.enable(i,1)
     softcut.level(i,1)
     softcut.pan(i,0)
@@ -135,7 +140,12 @@ function init()
     softcut.rec(i,0)
     softcut.buffer(i,1)
     softcut.position(i,0)
+    softcut.level_slew_time(i,clock.get_beat_sec()/4)
+    softcut.rate_slew_time(i,clock.get_beat_sec()/4)
   end
+  softcut.level(3,0)
+  softcut.play(3,1)
+  softcut.phase_quant(1,0.025)
   softcut.event_render(update_render)
 
   -- initialize samples
@@ -150,6 +160,10 @@ function init()
     up.patterns[i]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
   end
 
+  -- position poll
+  softcut.event_phase(update_positions)
+  softcut.poll_start_phase()
+  
   -- update clocks
   clock.run(update_beat)
 
@@ -201,6 +215,13 @@ end
 --
 -- updaters
 --
+function update_positions(i,x)
+  -- adjust position so it is relative to loop start
+  if i==1 then 
+    us.playing_position = x
+  end
+end
+
 function update_render(ch,start,i,s)
   us.waveform_samples=s
   us.interval=i
@@ -216,63 +237,125 @@ end
 function update_beat()
   local current_voice=1
   local p=up.patterns[1]
+  local phrase_start=0
+  local phrase_end = 0
   while true do
     clock.sync(1/4)
     if us.playing==false then goto continue end
-    clock.run(function()
-      us.playing_beat=us.playing_beat+1
-      if us.playing_beat>16 then
-        us.playing_chain=us.playing_chain+1
-        if us.playing_chain>#up.chain or up.chain[us.playing_chain]==0 then
-          us.playing_chain=1
-        end
-        us.pattern_cur=up.chain[us.playing_chain]
-        p=up.patterns[up.chain[us.playing_chain]]
-        us.playing_beat=1
+    us.playing_beat=us.playing_beat+1
+    if us.playing_beat>16 then
+      us.playing_chain=us.playing_chain+1
+      if us.playing_chain>#up.chain or up.chain[us.playing_chain]==0 then
+        us.playing_chain=1
       end
-      -- if silence, continue
-      local playing_pattern_segment=p[us.playing_beat]
-      -- get sample id from the pattern segment
-      local sample_id=math.floor(playing_pattern_segment)
-      if sample_id==0 then
-        us.playing_pattern_segment=0
-        us.playing_sample={0,0}
-        us.playing_sampleid=0
+      us.pattern_cur=up.chain[us.playing_chain]
+      p=up.patterns[up.chain[us.playing_chain]]
+      us.playing_beat=1
+    end
+    -- if silence, continue
+    local playing_pattern_segment=p[us.playing_beat]
+    -- get sample id from the pattern segment
+    local sample_id=math.floor(playing_pattern_segment)
+    if us.effect_on then 
+      us.effect_on=false
+      if us.playing_sampleid > 0 then 
+        print(us.playing_position)
+        rate = 1
+        if us.effect_stutter then 
+          softcut.loop(3,1)
+          local stutter_amount = math.random(4)
+          softcut.loop_end(3,us.playing_position+clock.get_beat_sec()/(64.0/stutter_amount))
+          softcut.loop_start(3,us.playing_position-clock.get_beat_sec()/(64.0/stutter_amount))
+        else
+          softcut.loop_start(3,0)
+          softcut.loop_end(3,up.length)
+        end
+        if us.effect_reverse then 
+          rate = -1
+        end
+        softcut.rate(3,rate*up.rate)
+        softcut.position(3,us.playing_position)
+        clock.run(function()
+          if us.effect_reverse then 
+            for i=1,10 do
+              softcut.level(3,i/10.0)
+              softcut.level(1,(10-i)/10.0)
+              clock.sleep(clock.get_beat_sec()/10)
+            end
+          else
+            softcut.level(3,1)
+            softcut.level(1,0)
+          end
+          clock.sleep(clock.get_beat_sec()/4*(2+math.random(8)))
+          softcut.level(1,1)
+          softcut.level(3,0)
+        end)
+      end
+    elseif us.effect_reverse and not us.effect_on then 
+      print("reverse!")
+      us.effect_reverse=false
+      us.effect_on=true
+      -- wait
+      if us.playing_sampleid > 0 then 
+        print(us.playing_position)
+        softcut.loop(3,0)
+        softcut.loop_end(3,us.playing_position)
+        softcut.loop_start(3,us.playing_position-clock.get_beat_sec()*2)
+        softcut.position(3,us.playing_position)
+        softcut.play(3,1)
+        softcut.rate(3,-1*up.rate)
+        softcut.level(1,0)
+        softcut.level(3,1)
+        clock.run(function()
+          clock.sleep(clock.get_beat_sec()*2)
+          softcut.level(1,1)
+          softcut.level(3,0)
+          softcut.play(3,0)
+        end)
+      end
+      us.effect_on=false
+    elseif not us.effect_on then
+      clock.run(function()
+        if sample_id==0 then
+          us.playing_pattern_segment=0
+          us.playing_sample={0,0}
+          us.playing_sampleid=0
+          redraw()
+          return
+        end
+        if playing_pattern_segment==us.playing_pattern_segment then
+          return
+        end
+        us.playing_pattern_segment=playing_pattern_segment
+        phrase_start=us.playing_beat
+        phrase_end=start
+        for j=phrase_start,16 do
+          if us.playing_pattern_segment~=p[j] then
+            phrase_end=j
+            break
+          end
+        end
+        if phrase_start==16 then
+          phrase_end=17
+        end
+        -- play sample
+        local sample_start=up.samples[sample_id].start
+        if up.samples[sample_id].start+up.samples[sample_id].length~=us.playing_loop_end then
+          us.playing_loop_end=up.samples[sample_id].start+up.samples[sample_id].length
+          softcut.loop_end(1,us.playing_loop_end)
+        end
+        us.playing_sampleid=sample_id
+        us.playing_sample={up.samples[sample_id].start,us.playing_loop_end}
+        softcut.position(1,up.samples[sample_id].start)
+        -- softcut.rate(1,up.rate*clock.get_tempo()/up.bpm)
+        -- softcut.loop_start(1,sample_start)
+        -- softcut.level(1,1)
+        -- softcut.play(1,1)
+        -- TODO: figure out position in chain/pattern/sample
+        -- TODO: add effects
         redraw()
-        return
-      end
-      if playing_pattern_segment==us.playing_pattern_segment then
-        return
-      end
-      us.playing_pattern_segment=playing_pattern_segment
-      local start=us.playing_beat
-      local finish=start
-      for j=start,16 do
-        if us.playing_pattern_segment~=p[j] then
-          finish=j
-          break
-        end
-      end
-      if start==16 then
-        finish=17
-      end
-      -- play sample
-      local sample_start=up.samples[sample_id].start
-      if up.samples[sample_id].start+up.samples[sample_id].length~=us.playing_loop_end then
-        us.playing_loop_end=up.samples[sample_id].start+up.samples[sample_id].length
-        softcut.loop_end(1,us.playing_loop_end)
-      end
-      us.playing_sampleid=sample_id
-      us.playing_sample={up.samples[sample_id].start,us.playing_loop_end}
-      softcut.position(1,up.samples[sample_id].start)
-      -- softcut.rate(1,up.rate*clock.get_tempo()/up.bpm)
-      -- softcut.loop_start(1,sample_start)
-      -- softcut.level(1,1)
-      -- softcut.play(1,1)
-      -- TODO: figure out position in chain/pattern/sample
-      -- TODO: add effects
-      redraw()
-    end)
+      end)
+    end
     ::continue::
   end
 end
@@ -457,6 +540,10 @@ end
 function key(n,z)
   if n==1 then
     us.shift=(z==1)
+  elseif n==2 and z==1 and us.shift then 
+    -- us.effect_reverse=true
+    us.effect_stutter =true
+    us.effect_on=true
   elseif n==3 and z==1 and us.shift then
     -- toggle playback
     parameters_save("play.json")
