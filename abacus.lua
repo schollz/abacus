@@ -20,7 +20,8 @@
 -- docs: https://monome.org/docs/norns/api/modules/softcut.html
 
 json=include("lib/json")
-
+local ControlSpec = require 'controlspec'
+local Formatters = require 'formatters'
 --
 -- globals
 --
@@ -86,6 +87,41 @@ function init()
   -- us.available_files={'amenbreak.wav'}
   -- us.available_saves={''}
 
+ local specs = {}
+  specs.AMP = ControlSpec.new(0, 1, 'lin', 0, 1, '')
+  specs.FILTER_FREQ = ControlSpec.new(20, 20000, 'exp', 0, 20000, 'Hz')
+  specs.FILTER_RESONANCE = ControlSpec.new(0.05, 1, 'lin', 0, 0.25, '')
+  specs.PERCENTAGEADD = ControlSpec.new(-1, 1, 'lin', 0.01, 0, '%')
+  specs.PERCENTAGE = ControlSpec.new(0, 1, 'lin', 0.01, 0, '%')
+
+ params:add{
+    type = 'control',
+    id ='global_rate',
+    name = 'global rate',
+    controlspec = specs.PERCENTAGEADD,
+    formatter = Formatters.percentage,
+    action=function(x)
+    for i=1,3 do
+  softcut.rate(i,up.rate+x)
+end
+    end
+  }
+
+ params:add{
+    type = 'control',
+    id ='effect_stutter',
+    name = 'effect stutter',
+    controlspec = specs.PERCENTAGE,
+    formatter = Formatters.percentage,
+  }
+
+ params:add{
+    type = 'control',
+    id ='effect_reverse',
+    name = 'effect reverse',
+    controlspec = specs.PERCENTAGE,
+    formatter = Formatters.percentage,
+  }
   -- parameters
   -- params:add {
   --   type='option',
@@ -256,12 +292,16 @@ function update_beat()
     local playing_pattern_segment=p[us.playing_beat]
     -- get sample id from the pattern segment
     local sample_id=math.floor(playing_pattern_segment)
-    if us.effect_on then
+
+    -- do effects
+    effect_stutter = math.random()<params:get("effect_stutter")
+    effect_reverse = math.random()<params:get("effect_reverse")
+    if effect_stutter or effect_reverse then
       us.effect_on=false
       if us.playing_sampleid>0 then
         print(us.playing_position)
         rate=1
-        if us.effect_stutter then
+        if effect_stutter then
           print("stutter")
           softcut.loop(3,1)
           local stutter_amount=math.random(4)
@@ -271,11 +311,11 @@ function update_beat()
           softcut.loop_start(3,0)
           softcut.loop_end(3,up.length)
         end
-        if us.effect_reverse then
+        if effect_reverse then
           print("reverse")
           rate=-1
         end
-        softcut.rate(3,rate*up.rate)
+        softcut.rate(3,rate*up.rate+params:get("global_rate"))
         softcut.position(3,us.playing_position)
         clock.run(function()
           if us.effect_reverse then
@@ -382,7 +422,7 @@ function sample_one_shot()
     us.playing_sample={0,0}
     redraw()
   end)
-  softcut.rate(2,up.rate)
+  softcut.rate(2,up.rate+params:get("global_rate"))
   softcut.position(2,s)
   softcut.loop_start(2,s)
   softcut.loop_end(2,e)
@@ -419,7 +459,7 @@ function sample_create_playback()
   softcut.loop_end(1,current_position)
   softcut.position(1,80)
   softcut.loop(1,1)
-  softcut.rate(1,up.rate)
+  softcut.rate(1,up.rate+params:get("global_rate"))
   softcut.play(1,1)
 end
 
@@ -470,17 +510,17 @@ function enc(n,d)
     -- change pattern
     us.pattern_cur=util.clamp(us.pattern_cur+sign(d),1,8)
   elseif n==2 and us.mode==0 then
-    local x = d*up.length/500
+    local x = d*up.length/1000
     up.samples[us.sample_cur].start=util.clamp(up.samples[us.sample_cur].start+x,0,up.length)
     if up.samples[us.sample_cur].length==0 then
       up.samples[us.sample_cur].length=clock.get_beat_sec()/4
     end
-    if up.samples[us.sample_cur].start<us.waveform_view[1] then
+    if up.samples[us.sample_cur].start<us.waveform_view[1] or up.samples[us.sample_cur].start+up.samples[us.sample_cur].length>us.waveform_view[2] then
       update_waveform_view(up.samples[us.sample_cur].start,up.samples[us.sample_cur].start+up.samples[us.sample_cur].length)
     end
   elseif n==3 and us.mode==0 then
     -- local x=d*clock.get_beat_sec()/4
-    local x = d*up.length/500
+    local x = d*up.length/1000
     up.samples[us.sample_cur].length=util.clamp(up.samples[us.sample_cur].length+x,0,up.length-up.samples[us.sample_cur].start)
     if up.samples[us.sample_cur].start+up.samples[us.sample_cur].length>us.waveform_view[2] then
       update_waveform_view(up.samples[us.sample_cur].start,up.samples[us.sample_cur].start+up.samples[us.sample_cur].length)
@@ -538,7 +578,7 @@ function key(n,z)
     --   softcut.level(1,0)
     -- end
     if us.playing then
-      softcut.rate(1,up.rate)
+      softcut.rate(1,up.rate+params:get("global_rate"))
       softcut.level(1,1)
       softcut.play(1,1)
     else
