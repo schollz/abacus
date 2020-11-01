@@ -1,23 +1,31 @@
 -- abacus v0.1.0
--- counting frame for music
---
--- llllllll.co/t/?
---
+-- sequence rows of samples
+-- with calculated beats.
+-- 
+-- llllllll.co/t/abacus
 --
 --
 --    ▼ instructions below ▼
--- K1+E1 changes sample/pattern/chain mode
--- K1+K3 starts/stops pattern/chain
--- K2 zooms (sample mode) or patterns (pattern mode)
--- K3 plays current sample
--- E1 changes sample (sample+pattern) or pattern (chain)
--- E2 changes start (sample+pattern), chain position (chain)
--- E3 changes sample length (sample)
--- E3 changes pattern (pattern mode)
--- E3 changes chain position (chain mode)
--- K1+K2 erases patterns (pattern mode)
--- E3 changes
--- docs: https://monome.org/docs/norns/api/modules/softcut.html
+-- K1+E1 changes mode
+-- K1+K3 starts/stops chain
+--
+-- sample mode 
+-- E1 changes sample
+-- E2/E3 change splice position
+-- K2 zooms 
+-- K3 plays sample
+--
+-- pattern mode
+-- K2 patterns
+-- K1+K2 erases pattern
+-- E1 changes pattern
+-- E2 selects sample 
+-- E3 positions sample
+--
+-- chain mode
+-- E2 positions 
+-- E3 selects pattern 
+-- K2/K3 do effects
 
 json=include("lib/json")
 local ControlSpec=require 'controlspec'
@@ -121,6 +129,31 @@ function init()
     name='effect reverse',
     controlspec=specs.PERCENTAGE,
     formatter=Formatters.percentage,
+  }
+
+    params:add {
+    type = 'control',
+    id = 'filter_frequency',
+    name = 'Filter Cutoff',
+    controlspec = specs.FILTER_FREQ,
+    formatter = Formatters.format_freq,
+    action = function(value)
+    for i=1,3 do
+      softcut.post_filter_fc(i, value)
+    end
+    end
+  }
+
+  params:add {
+    type = 'control',
+    id = 'filter_reso',
+    name = 'Filter Resonance',
+    controlspec = specs.FILTER_RESONANCE,
+    action = function(value)
+    for i=1,3 do
+      softcut.post_filter_rq(i, value)
+    end
+    end
   }
   -- parameters
   -- params:add {
@@ -427,40 +460,6 @@ function sample_one_shot()
   softcut.play(2,1)
 end
 
-function sample_create_playback()
-  local seconds_per_beat=60/up.bpm
-  local current_position=80
-  local testone=false
-  for chainit=1,#up.chain do
-    local chainid=up.chain[chainit]
-    if chainid==0 then break end
-    local current_pattern=0
-    local p=up.patterns[chainid]
-    for i=1,16 do
-      if p[i]~=current_pattern then
-        current_pattern=p[i]
-        -- copy over buffer
-        if current_pattern>0 then
-          sample_id=math.floor(current_pattern)
-          local sample_start=up.samples[sample_id].start
-          local sample_length=up.samples[sample_id].length+clock.get_beat_sec()/4
-          print("sample_length "..sample_length)
-          if testone==false then
-            softcut.buffer_copy_mono(1,1,sample_start,current_position,sample_length,0,0)
-            testone=true
-          end
-        end
-      end
-    end
-  end
-  softcut.loop_start(1,80)
-  softcut.loop_end(1,current_position)
-  softcut.position(1,80)
-  softcut.loop(1,1)
-  softcut.rate(1,up.rate+params:get("global_rate"))
-  softcut.play(1,1)
-end
-
 --
 -- save/load
 --
@@ -561,20 +560,15 @@ end
 function key(n,z)
   if n==1 then
     us.shift=(z==1)
-  elseif n==2 and z==1 and us.shift then
-    us.effect_stutter=(math.random()<0.5)
+  elseif n>=2 and z==1 and us.mode==2 then
+    -- effects in chain mode
+    us.effect_stutter=n==2
     us.effect_reverse=not us.effect_stutter
     us.effect_on=true
   elseif n==3 and z==1 and us.shift then
     -- toggle playback
     parameters_save("play.json")
     us.playing=not us.playing
-    -- if us.playing then
-    --   sample_create_playback()
-    --   softcut.level(1,1)
-    -- else
-    --   softcut.level(1,0)
-    -- end
     if us.playing then
       softcut.rate(1,up.rate+params:get("global_rate"))
       softcut.level(1,1)
