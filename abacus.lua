@@ -278,6 +278,7 @@ function update_beat()
   while true do
     clock.sync(1/4)
     if us.playing==false then goto continue end
+      clock.run(function()
     us.playing_beat=us.playing_beat+1
     if us.playing_beat>16 then
       us.playing_chain=us.playing_chain+1
@@ -317,7 +318,6 @@ function update_beat()
         end
         softcut.rate(3,rate*up.rate+params:get("global_rate"))
         softcut.position(3,us.playing_position)
-        clock.run(function()
           if us.effect_reverse then
             for i=1,10 do
               softcut.level(3,i/10.0)
@@ -331,10 +331,8 @@ function update_beat()
           clock.sleep(clock.get_beat_sec()/4*(2+math.random(8)))
           softcut.level(1,1)
           softcut.level(3,0)
-        end)
       end
     elseif not us.effect_on then
-      clock.run(function()
         if sample_id==0 then
           us.playing_pattern_segment=0
           us.playing_sample={0,0}
@@ -373,8 +371,8 @@ function update_beat()
         -- TODO: figure out position in chain/pattern/sample
         -- TODO: add effects
         redraw()
-      end)
     end
+      end)
     ::continue::
   end
 end
