@@ -5,7 +5,6 @@ sequence rows of samples with calculated beats.
 
 ![Image](?)
 
-*lets glitch with glitchlets.*                                                         
 
 this norns script creates sequences of samples from a tape. you can load any tape and splice it into up to 26 samples (named a-z). samples can then be patterned into 16-subdivided measures. patterns can then be chained together.
 
@@ -22,19 +21,29 @@ future directions:
 
 ### Documentation
 
-**quickstart:** put music into line-in. set norns global tempo in `clock -> tempo` to tempo of music. open glitchlets and press K1+K2.
+- K1+E1 changes mode
+- K1+K3 starts/stops chain
 
-all five glitchlets can be consciously controlled via global params or quick menu. quick menu:
+sample mode
 
-- first set clock->tempo then reload glitchlets
-- K1+K2 does quick start
-- hold K1 to turn off glitches
-- K2 manually glitches
-- K3 or K1+K3 switch glitchlet
-- E1 switches parameters
-- E2/E3 modulate parameters
+- E1 changes sample
+- E2/E3 change splice position
+- K2 zooms
+- K3 plays sample
 
-*note:* make sure to restart norns the first time you install because it has a new supercollider engine that needs to be compiled.
+pattern mode
+
+- K2 patterns
+- K1+K2 erases pattern
+- E1 changes pattern
+- E2 selects sample
+- E3 positions sample
+
+chain mode
+
+- E2 positions
+- E3 selects pattern
+- K2/K3 do effects
 
 ## demo 
 
