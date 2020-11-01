@@ -262,6 +262,7 @@ function update_beat()
         print(us.playing_position)
         rate=1
         if us.effect_stutter then
+          print("stutter")
           softcut.loop(3,1)
           local stutter_amount=math.random(4)
           softcut.loop_end(3,us.playing_position+clock.get_beat_sec()/(64.0/stutter_amount))
@@ -271,6 +272,7 @@ function update_beat()
           softcut.loop_end(3,up.length)
         end
         if us.effect_reverse then
+          print("reverse")
           rate=-1
         end
         softcut.rate(3,rate*up.rate)
@@ -291,29 +293,6 @@ function update_beat()
           softcut.level(3,0)
         end)
       end
-    elseif us.effect_reverse and not us.effect_on then
-      print("reverse!")
-      us.effect_reverse=false
-      us.effect_on=true
-      -- wait
-      if us.playing_sampleid>0 then
-        print(us.playing_position)
-        softcut.loop(3,0)
-        softcut.loop_end(3,us.playing_position)
-        softcut.loop_start(3,us.playing_position-clock.get_beat_sec()*2)
-        softcut.position(3,us.playing_position)
-        softcut.play(3,1)
-        softcut.rate(3,-1*up.rate)
-        softcut.level(1,0)
-        softcut.level(3,1)
-        clock.run(function()
-          clock.sleep(clock.get_beat_sec()*2)
-          softcut.level(1,1)
-          softcut.level(3,0)
-          softcut.play(3,0)
-        end)
-      end
-      us.effect_on=false
     elseif not us.effect_on then
       clock.run(function()
         if sample_id==0 then
@@ -544,6 +523,10 @@ end
 function key(n,z)
   if n==1 then
     us.shift=(z==1)
+  elseif n==2 and z==1 and us.shift then 
+    us.effect_stutter = (math.random()<0.5)
+    us.effect_reverse = not us.effect_stutter
+    us.effect_on=true
   elseif n==3 and z==1 and us.shift then
     -- toggle playback
     parameters_save("play.json")
