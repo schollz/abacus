@@ -163,7 +163,7 @@ function init()
   -- position poll
   softcut.event_phase(update_positions)
   softcut.poll_start_phase()
-  
+
   -- update clocks
   clock.run(update_beat)
 
@@ -217,8 +217,8 @@ end
 --
 function update_positions(i,x)
   -- adjust position so it is relative to loop start
-  if i==1 then 
-    us.playing_position = x
+  if i==1 then
+    us.playing_position=x
   end
 end
 
@@ -238,7 +238,7 @@ function update_beat()
   local current_voice=1
   local p=up.patterns[1]
   local phrase_start=0
-  local phrase_end = 0
+  local phrase_end=0
   while true do
     clock.sync(1/4)
     if us.playing==false then goto continue end
@@ -256,27 +256,27 @@ function update_beat()
     local playing_pattern_segment=p[us.playing_beat]
     -- get sample id from the pattern segment
     local sample_id=math.floor(playing_pattern_segment)
-    if us.effect_on then 
+    if us.effect_on then
       us.effect_on=false
-      if us.playing_sampleid > 0 then 
+      if us.playing_sampleid>0 then
         print(us.playing_position)
-        rate = 1
-        if us.effect_stutter then 
+        rate=1
+        if us.effect_stutter then
           softcut.loop(3,1)
-          local stutter_amount = math.random(4)
+          local stutter_amount=math.random(4)
           softcut.loop_end(3,us.playing_position+clock.get_beat_sec()/(64.0/stutter_amount))
           softcut.loop_start(3,us.playing_position-clock.get_beat_sec()/(64.0/stutter_amount))
         else
           softcut.loop_start(3,0)
           softcut.loop_end(3,up.length)
         end
-        if us.effect_reverse then 
-          rate = -1
+        if us.effect_reverse then
+          rate=-1
         end
         softcut.rate(3,rate*up.rate)
         softcut.position(3,us.playing_position)
         clock.run(function()
-          if us.effect_reverse then 
+          if us.effect_reverse then
             for i=1,10 do
               softcut.level(3,i/10.0)
               softcut.level(1,(10-i)/10.0)
@@ -291,12 +291,12 @@ function update_beat()
           softcut.level(3,0)
         end)
       end
-    elseif us.effect_reverse and not us.effect_on then 
+    elseif us.effect_reverse and not us.effect_on then
       print("reverse!")
       us.effect_reverse=false
       us.effect_on=true
       -- wait
-      if us.playing_sampleid > 0 then 
+      if us.playing_sampleid>0 then
         print(us.playing_position)
         softcut.loop(3,0)
         softcut.loop_end(3,us.playing_position)
@@ -511,28 +511,28 @@ function enc(n,d)
     -- change start position
     us.pattern_temp.start=util.clamp(us.pattern_temp.start+sign(d),1,16)
     us.pattern_temp.length=util.round(up.samples[us.sample_cur].length/(clock.get_beat_sec()/4))
-  elseif n==2 and us.mode==2 then 
-    local last_chain = 1
+  elseif n==2 and us.mode==2 then
+    local last_chain=1
     for i=1,#up.chain do
       if up.chain[i]==0 then
         last_chain=i
         break
       end
     end
-    us.chain_cur = util.clamp(us.chain_cur+sign(d),1,last_chain)
-  elseif n==3 and us.mode==2 then 
-    local last_chain = 1
+    us.chain_cur=util.clamp(us.chain_cur+sign(d),1,last_chain)
+  elseif n==3 and us.mode==2 then
+    local last_chain=1
     for i=1,#up.chain do
       if up.chain[i]==0 then
         last_chain=i
         break
       end
     end
-    min_chain = 1 
-    if us.chain_cur >= last_chain-1  then 
+    min_chain=1
+    if us.chain_cur>=last_chain-1 then
       min_chain=0
     end
-    up.chain[us.chain_cur] = util.clamp(up.chain[us.chain_cur]+sign(d),min_chain,9)
+    up.chain[us.chain_cur]=util.clamp(up.chain[us.chain_cur]+sign(d),min_chain,9)
   end
   us.update_ui=true
 end
@@ -540,9 +540,9 @@ end
 function key(n,z)
   if n==1 then
     us.shift=(z==1)
-  elseif n==2 and z==1 and us.shift then 
+  elseif n==2 and z==1 and us.shift then
     -- us.effect_reverse=true
-    us.effect_stutter =true
+    us.effect_stutter=true
     us.effect_on=true
   elseif n==3 and z==1 and us.shift then
     -- toggle playback
@@ -643,16 +643,16 @@ function redraw()
       if up.chain[i]==1 then
         isone=1
       end
-      last_position = i
+      last_position=i
       screen.move(21+(i-1)*7+isone+shift_amount,7+shift_amount)
-      if up.chain[i] > 0 then
+      if up.chain[i]>0 then
         screen.text(up.chain[i])
-      else 
+      else
         screen.text(" ")
       end
     end
   end
-  if us.mode==2 then 
+  if us.mode==2 then
     screen.level(15)
   end
   screen.rect(19+shift_amount,1+shift_amount,21+(last_position-1)*7-13,8)
