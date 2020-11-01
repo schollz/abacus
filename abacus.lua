@@ -83,6 +83,7 @@ up={
 uc={
   update_timer_interval=0.05,
   audio_dir=_path.audio..'abacus/',
+  tape_dir=_path.audio..'tape/',
   code_dir=_path.code..'abacus/',
   data_dir=_path.data..'abacus/',
 }
@@ -94,6 +95,18 @@ function init()
   -- determine which files are available
   -- us.available_files={'amenbreak.wav'}
   -- us.available_saves={''}
+
+  local files={}
+  local files_count=0
+  local f=io.popen('cd '..uc.tape_dir..'; ls -d *')
+  for name in f:lines() do
+    table.insert(files,name)
+    files_count=files_count+1
+  end
+  table.sort(files)
+  for i,f in ipairs(files)
+    print(i.." "..f)
+  end
 
   local specs={}
   specs.AMP=ControlSpec.new(0,1,'lin',0,1,'')
