@@ -12,21 +12,23 @@
 -- sample mode
 -- E1 changes sample
 -- E2/E3 change splice position
+-- K1+K3 starts/stops chain
 -- K2 zooms
 -- K3 plays sample
 --
 -- pattern mode
--- K2 patterns
--- K3 plays pattern
--- K1+K2 erases pattern
 -- E1 changes pattern
 -- E2 selects sample
 -- E3 positions sample
+-- K2 patterns
+-- K3 plays sample
+-- K1+K2 erases position
+-- K1+K3 plays pattern
 --
 -- chain mode
 -- E2 positions
 -- E3 selects pattern
--- K2/K3 do effects
+-- K2/K3 does effects
 
 json=include("lib/json")
 local ControlSpec=require 'controlspec'

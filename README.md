@@ -8,7 +8,9 @@ sequence rows of samples with calculated beats.
 
 this norns script creates sequences of samples from a tape. you can load any tape and splice it into up to 26 samples (named a-z). samples can then be patterned into 16-subdivided measures. patterns can then be chained together.
 
-this script follow a lot of previous things. i got inspiration/code from [glitchlets](https://github.com/schollz/glitchlets) and [beets](https://llllllll.co/t/beets-1-0/30069) and designed a lot of aspects similar to how the po-33 sampler works, but more tuned to my tastes.
+this script was a hard one to make because at a certain point i kept getting caught up playing with for hours instead of figuring out how to make it user-friendly... 
+
+this script builds off others. it is inspired a lot from ideas in [glitchlets](https://github.com/schollz/glitchlets) (no realtime here) and a lot of code ideas from @mattbiddulph's exquisite [beets](https://llllllll.co/t/beets-1-0/30069) (initially i forked beets but i didn't want to ruin the code with my hacks). also inspiration from the po-33. and, it is inspired by @csboling's beautiful waveform renderings.
 
 future directions:
 
@@ -18,34 +20,35 @@ future directions:
 
 ### Requirements
 
-- norns
+- norns (version 201023+)
 
 ### Documentation
 
 - K1+E1 changes mode
-- K1+K3 starts/stops chain
 
 sample mode
 
 - E1 changes sample
 - E2/E3 change splice position
+- K1+K3 starts/stops chain
 - K2 zooms
 - K3 plays sample
 
 pattern mode
 
-- K2 patterns
-- K3 plays pattern
-- K1+K2 erases pattern
 - E1 changes pattern
 - E2 selects sample
 - E3 positions sample
+- K2 patterns
+- K3 plays sample
+- K1+K2 erases position
+- K1+K3 plays pattern
 
 chain mode
 
 - E2 positions
 - E3 selects pattern
-- K2/K3 do effects
+- K2/K3 does effects
 
 ## demo 
 
