@@ -3,7 +3,7 @@
 
 sequence rows of samples with calculated beats.
 
-![Image](?)
+![Image](https://user-images.githubusercontent.com/6550035/97828526-2956aa00-1c7c-11eb-9845-9a6b8000cf4c.gif)
 
 
 this norns script creates sequences of samples from a tape. you can load any tape and splice it into up to 26 samples (named a-z). samples can then be patterned into 16-subdivided measures. patterns can then be chained together.
