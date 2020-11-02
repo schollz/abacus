@@ -1,6 +1,6 @@
 -- abacus v0.1.0
--- sequence rows of samples
--- with calculated beats.
+-- sequence rows of beats 
+-- with samples.
 --
 -- llllllll.co/t/abacus
 --

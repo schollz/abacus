@@ -1,7 +1,7 @@
 
 ## abacus
 
-sequence rows of samples with calculated beats.
+sequence rows of beats with samples.
 
 ![Image](https://user-images.githubusercontent.com/6550035/97828526-2956aa00-1c7c-11eb-9845-9a6b8000cf4c.gif)
 
