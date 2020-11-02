@@ -55,6 +55,7 @@ us={
   playing_beat=0,-- current
   playing_chain=1,
   playing_pattern=0,-- current pattern
+  playing_once=0,
   playing_pattern_segment=0,-- current sample pattern (sample id + random int decimal)
   playing_loop_end=0,
   playing_position=0,
@@ -358,12 +359,22 @@ function update_beat()
     clock.run(function()
       us.playing_beat=us.playing_beat+1
       if us.playing_beat>16 then
-        us.playing_chain=us.playing_chain+1
-        if us.playing_chain>#up.chain or up.chain[us.playing_chain]==0 then
-          us.playing_chain=1
+        if us.playing_once ==2  then 
+          print("playing once!")
+          us.playing_once = 1
+        elseif us.playing_once==1 then 
+          us.playing_once=0
+          us.playing=false
+          return
+        else
+          -- iterate through chain
+          us.playing_chain=us.playing_chain+1
+          if us.playing_chain>#up.chain or up.chain[us.playing_chain]==0 then
+            us.playing_chain=1
+          end
+          us.pattern_cur=up.chain[us.playing_chain]
         end
-        us.pattern_cur=up.chain[us.playing_chain]
-        p=up.patterns[up.chain[us.playing_chain]]
+        p=up.patterns[us.pattern_cur]
         us.playing_beat=1
       end
       -- if silence, continue
@@ -614,8 +625,7 @@ function key(n,z)
     -- of current pattern ONLY 
     -- toggle playback
     parameters_save("play.json")
-    us.playing=not us.playing
-    if us.playing then
+    if not us.playing then
       softcut.rate(1,up.rate+params:get("global_rate"))
       softcut.level(1,1)
       softcut.play(1,1)
@@ -628,6 +638,10 @@ function key(n,z)
     us.playing_sample={0,0}
     us.playing_beat=17
     us.playing_pattern=1 -- TODO: should be first in chain
+    if us.mode==1 then 
+      us.playing_once=2
+    end
+    us.playing=not us.playing
   elseif n==2 and z==1 and us.mode==0 then
     if up.samples[us.sample_cur].start==us.waveform_view[1] and up.samples[us.sample_cur].start+up.samples[us.sample_cur].length==us.waveform_view[2] then
       update_waveform_view(0,up.length)
@@ -724,12 +738,6 @@ function redraw()
   if us.mode==1 then
     -- fill in temp pattern
     p=pattern_stamp(us.sample_cur,us.pattern_temp.start,us.pattern_temp.length)
-    print("us.pattern_temp.start "..us.pattern_temp.start)
-    print("us.pattern_temp.length "..us.pattern_temp.length)
-    -- rvalue = math.random()
-    -- for i=us.pattern_temp.start,us.pattern_temp.start+us.pattern_temp.length-1 do
-    --   p[i]=us.sample_cur+rvalue
-    -- end
   end
   local start=us.pattern_temp.start
   local finish=us.pattern_temp.start+us.pattern_temp.length
