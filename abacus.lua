@@ -102,7 +102,6 @@ function init()
     print("making data directory")
     util.make_dir(uc.data_dir)
     local f=io.popen('cp '..uc.code_dir..'sounds/* '..uc.data_dir)
-    print(f:lines())
   end
 
   -- TODO: always save play.json AND the name.json
@@ -110,27 +109,41 @@ function init()
   -- TODO: load files from tape/data direcotry
   local files={}
   local files_fullpath={}
+  local previous_files={}
+  local previous_files_fullpath={}
   local f=io.popen('cd '..uc.tape_dir..'; ls -d *')
   for name in f:lines() do
     if string.match(name,".wav") then 
-    table.insert(files,name)
+    table.insert(files,name:match("^(.+).wav$"))
     table.insert(files_fullpath,uc.tape_dir..name)
   end
   end
   f=io.popen('cd '..uc.data_dir..'; ls -d *')
   for name in f:lines() do
     if string.match(name,".wav") then 
-    table.insert(files,name)
-    table.insert(files_fullpath,uc.data_dir..name)
-  end
+      table.insert(files,name:match("^(.+).wav$"))
+      table.insert(files_fullpath,uc.data_dir..name)
+    end
+    if string.match(name,".wav.json") then 
+      table.insert(previous_files,name:match("^(.+).wav.json$"))
+      table.insert(previous_files_fullpath,uc.data_dir..name)
+    end
   end
   table.sort(files)
+  table.sort(previous_files)
   local chosen_file=''
     for i,f in ipairs(files_fullpath) do
       -- https://stackoverflow.com/questions/48402876/getting-current-file-name-in-lua/48403164
-      if get_file_name(f)==files[1] then 
+      if get_file_name(f)==files[1]..".wav" then 
         chosen_file=f
-        print(chosen_file)
+        break
+      end
+    end
+  local previous_chosen_file=''
+    for i,f in ipairs(previous_files_fullpath) do
+      -- https://stackoverflow.com/questions/48402876/getting-current-file-name-in-lua/48403164
+      if get_file_name(f)==previous_files[1]..".wav.json" then 
+        previous_chosen_file=f
         break
       end
     end
@@ -142,6 +155,8 @@ function init()
   specs.PERCENTAGEADD=ControlSpec.new(-1,1,'lin',0.01,0,'%')
   specs.PERCENTAGE=ControlSpec.new(0,1,'lin',0.01,0,'%')
 
+params:add_separator("abacus")
+params:add_group("memory",4)
  params:add {
     type = 'option',
     id = 'load_sample',
@@ -150,9 +165,8 @@ function init()
     action = function(value)
     for i,f in ipairs(files_fullpath) do
       -- https://stackoverflow.com/questions/48402876/getting-current-file-name-in-lua/48403164
-      if get_file_name(f)==files[value] then 
+      if get_file_name(f)==files[value]..".wav" then 
         chosen_file=f
-        print(chosen_file)
         break
       end
     end
@@ -168,7 +182,32 @@ params:add {
     end
   }
 
+ params:add {
+    type = 'option',
+    id = 'load_previous',
+    name = 'choose previous',
+    options = previous_files,
+    action = function(value)
+    for i,f in ipairs(previous_files_fullpath) do
+      -- https://stackoverflow.com/questions/48402876/getting-current-file-name-in-lua/48403164
+      if get_file_name(f)==previous_files[value]..".wav.json" then 
+        previous_chosen_file=f
+        break
+      end
+    end
+  end}
 
+params:add {
+    type = 'trigger',
+    id = 'open_previous',
+    name = 'load previous',
+    action = function(value)
+      initialize_samples()
+      parameters_load(previous_chosen_file)
+    end
+  }
+
+params:add_group("effects",5)
   params:add{
     type='control',
     id='global_rate',
@@ -201,7 +240,7 @@ params:add {
   params:add {
     type='control',
     id='filter_frequency',
-    name='Filter Cutoff',
+    name='filter cutoff',
     controlspec=specs.FILTER_FREQ,
     formatter=Formatters.format_freq,
     action=function(value)
@@ -214,7 +253,7 @@ params:add {
   params:add {
     type='control',
     id='filter_reso',
-    name='Filter Resonance',
+    name='filter resonance',
     controlspec=specs.FILTER_RESONANCE,
     action=function(value)
       for i=1,3 do
@@ -222,48 +261,6 @@ params:add {
       end
     end
   }
-  -- parameters
-  -- params:add {
-  --   type='option',
-  --   id='choose_save',
-  --   name='Choose save',
-  --   options=us.available_save,
-  --   action=function(value)
-  --     up.filename_save=us.available_files[value]
-  --   end
-  -- }
-  -- params:add {
-  --   type='trigger',
-  --   id='load_save',
-  --   name='Load previous',
-  --   action=function(value)
-  --     if value=='-' then
-  --       return
-  --     end
-  --     -- TODO: load a file name and the sample
-  --   end
-  -- }
-  -- params:add {
-  --   type='option',
-  --   id='choose_sample',
-  --   name='Choose sample',
-  --   options={'amenbreak.wav'},
-  --   action=function(value)
-  --     up.filename=us.available_files[value]
-  --   end
-  -- }
-  -- params:add {
-  --   type='trigger',
-  --   id='load_loops',
-  --   name='Load loops',
-  --   action=function(value)
-  --     if value=='-' then
-  --       return
-  --     end
-  --     load_sample()
-  --     update_parameters()
-  --   end
-  -- }
   -- TODO: add individual parameters for pitching up/down specific samples
 
   initialize_samples()
@@ -280,7 +277,11 @@ params:add {
     softcut.position(i,0)
     softcut.level_slew_time(i,clock.get_beat_sec()/4)
     softcut.rate_slew_time(i,clock.get_beat_sec()/4)
-  end
+    softcut.post_filter_dry(i, 0.0)
+    softcut.post_filter_lp(i, 1.0)
+    softcut.post_filter_rq(i, 0.3)
+    softcut.post_filter_fc(i, 44100)
+    end
   softcut.level(3,0)
   softcut.play(3,1)
   softcut.phase_quant(1,0.025)
@@ -301,7 +302,7 @@ params:add {
   timer.event=update_timer
   timer:start()
 
-  parameters_load("play.json")
+  parameters_load(uc.data_dir.."play.json")
 end
 
 function initialize_samples()
@@ -383,12 +384,13 @@ function update_beat()
       local sample_id=math.floor(playing_pattern_segment)
 
       -- do effects
-      effect_stutter=math.random()<params:get("effect_stutter")
-      effect_reverse=math.random()<params:get("effect_reverse")
-      if effect_stutter or effect_reverse then
+      effect_stutter=us.effect_stutter or math.random()<params:get("effect_stutter")
+      effect_reverse=us.effect_reverse or math.random()<params:get("effect_reverse")
+      if (effect_stutter or effect_reverse) and us.playing_once==0 then
         us.effect_on=false
+        us.effect_stutter=false
+        us.effect_reverse=false
         if us.playing_sampleid>0 then
-          print(us.playing_position)
           rate=1
           if effect_stutter then
             print("stutter")
@@ -515,18 +517,14 @@ end
 --
 -- save/load
 --
-function parameters_save(filename)
-  up.filename_save=filename
+function parameters_save()
   data=json.encode(up)
-  print(data)
-  file=io.open(uc.data_dir..filename,"w+")
-  io.output(file)
-  print(io.write(data))
-  io.close(file)
+  write_file(uc.data_dir.."play.json",data)
+  write_file(uc.data_dir..get_file_name(up.filename)..".json",data)
 end
 
 function parameters_load(filename)
-  filename=uc.data_dir..filename
+  print("loading "..filename)
   if util.file_exists(filename) then
     local f=io.open(filename,"rb")
     print(f)
@@ -615,16 +613,15 @@ end
 function key(n,z)
   if n==1 then
     us.shift=(z==1)
-  elseif n>=2 and z==1 and us.mode==2 then
+  elseif n>=2 and z==1 and us.mode==2 and not us.shift then
     -- effects in chain mode
     us.effect_stutter=n==2
     us.effect_reverse=not us.effect_stutter
-    us.effect_on=true
   elseif n==3 and z==1 and us.shift then
     -- TODO, if mode == 1 then toggle playback
     -- of current pattern ONLY 
     -- toggle playback
-    parameters_save("play.json")
+    parameters_save()
     if not us.playing then
       softcut.rate(1,up.rate+params:get("global_rate"))
       softcut.level(1,1)
@@ -924,4 +921,12 @@ end
 
 function get_file_name(file)
       return file:match("^.+/(.+)$")
+end
+
+function write_file(fname,data)
+  print("saving to "..fname)
+  file=io.open(fname,"w+")
+  io.output(file)
+  io.write(data)
+  io.close(file)
 end
