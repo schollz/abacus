@@ -120,7 +120,7 @@ function init()
   end
   f=io.popen('cd '..uc.data_dir..'; ls -d *')
   for name in f:lines() do
-    if string.match(name,".wav") then
+    if string.match(name,".wav") and not string.match(name,".json")then
       table.insert(files,name:match("^(.+).wav$"))
       table.insert(files_fullpath,uc.data_dir..name)
     end
@@ -131,11 +131,13 @@ function init()
   end
   table.sort(files)
   table.sort(previous_files)
+  print(files[1])
   local chosen_file=''
   for i,f in ipairs(files_fullpath) do
     -- https://stackoverflow.com/questions/48402876/getting-current-file-name-in-lua/48403164
     if get_file_name(f)==files[1]..".wav" then
       chosen_file=f
+      print("chosen_file "..chosen_file)
       break
     end
   end
@@ -144,9 +146,12 @@ function init()
     -- https://stackoverflow.com/questions/48402876/getting-current-file-name-in-lua/48403164
     if get_file_name(f)==previous_files[1]..".wav.json" then
       previous_chosen_file=f
+      print("previous_chosen_file "..previous_chosen_file)
       break
     end
   end
+  print("previous_files: ")
+  print(previous_files[1])
 
   local specs={}
   specs.AMP=ControlSpec.new(0,1,'lin',0,1,'')
@@ -156,7 +161,7 @@ function init()
   specs.PERCENTAGE=ControlSpec.new(0,1,'lin',0.01,0,'%')
 
   params:add_separator("abacus")
-  params:add_group("memory",4)
+  params:add_group("save/load",4)
   params:add {
     type='option',
     id='load_sample',
