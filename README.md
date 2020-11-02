@@ -13,7 +13,8 @@ this script follow a lot of previous things. i got inspiration/code from [glitch
 future directions:
 
 - fix all the 🐛🐛🐛
-- add sample specific filters
+- add individual parameters for samples
+- add play trigger
 
 ### Requirements
 
@@ -34,6 +35,7 @@ sample mode
 pattern mode
 
 - K2 patterns
+- K3 plays pattern
 - K1+K2 erases pattern
 - E1 changes pattern
 - E2 selects sample
@@ -47,7 +49,7 @@ chain mode
 
 ## demo 
 
-<p align="center"><a href="https://www.instagram.com/p/CHDXh2QB_9L/"><img src="?" alt="Demo of playing" width=80%></a></p>
+<p align="center"><a href="https://www.instagram.com/p/CHDXh2QB_9L/"><img src="https://user-images.githubusercontent.com/6550035/97828771-e812ca00-1c7c-11eb-8241-9fd73a5c3b06.png" alt="Demo of playing" width=80%></a></p>
 
 ## my other norns
 

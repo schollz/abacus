@@ -17,6 +17,7 @@
 --
 -- pattern mode
 -- K2 patterns
+-- K3 plays pattern
 -- K1+K2 erases pattern
 -- E1 changes pattern
 -- E2 selects sample
@@ -104,9 +105,7 @@ function init()
     local f=io.popen('cp '..uc.code_dir..'sounds/* '..uc.data_dir)
   end
 
-  -- TODO: always save play.json AND the name.json
-
-  -- TODO: load files from tape/data direcotry
+  -- load files from tape/data direcotry
   local files={}
   local files_fullpath={}
   local previous_files={}
@@ -462,8 +461,6 @@ function update_beat()
         us.playing_sample={up.samples[sample_id].start,us.playing_loop_end}
         softcut.position(1,up.samples[sample_id].start)
         redraw()
-        -- TODO: remove this image drawing
-        -- _norns.screen_export_png("/home/we/dust/abacus_"..clock.get_beat()..".png")
       end
     end)
     ::continue::
@@ -625,8 +622,6 @@ function key(n,z)
     us.effect_stutter=n==2
     us.effect_reverse=not us.effect_stutter
   elseif n==3 and z==1 and us.shift then
-    -- TODO, if mode == 1 then toggle playback
-    -- of current pattern ONLY
     -- toggle playback
     parameters_save()
     if not us.playing then
@@ -641,8 +636,9 @@ function key(n,z)
     us.playing_loop_end=0
     us.playing_sample={0,0}
     us.playing_beat=17
-    us.playing_pattern=1 -- TODO: should be first in chain
+    us.playing_pattern=1 
     if us.mode==1 then
+      -- toggle playback of this chain only
       us.playing_once=2
     end
     us.playing=not us.playing
