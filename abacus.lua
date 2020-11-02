@@ -571,8 +571,11 @@ function enc(n,d)
       up.samples[us.sample_cur].length=clock.get_beat_sec()/4
       up.samples[us.sample_cur].start=util.clamp(up.samples[us.sample_cur].start,us.waveform_view[1],up.length)
     end
-    if up.samples[us.sample_cur].start<us.waveform_view[1] or up.samples[us.sample_cur].start+up.samples[us.sample_cur].length>us.waveform_view[2] then
-      update_waveform_view(up.samples[us.sample_cur].start,up.samples[us.sample_cur].start+up.samples[us.sample_cur].length)
+    local new_end = up.samples[us.sample_cur].start+up.samples[us.sample_cur].length
+    if up.samples[us.sample_cur].start<us.waveform_view[1] then
+      update_waveform_view(up.samples[us.sample_cur].start,us.waveform_view[2]+(up.samples[us.sample_cur].start-us.waveform_view[1]))
+    elseif new_end>us.waveform_view[2] then
+      update_waveform_view(us.waveform_view[1]+(new_end-us.waveform_view[2]),up.samples[us.sample_cur].start+up.samples[us.sample_cur].length)
     end
   elseif n==3 and us.mode==0 then
     -- local x=d*clock.get_beat_sec()/4
