@@ -414,7 +414,7 @@ function update_beat()
             print("reverse")
             rate=-1
           end
-          softcut.rate(3,rate*up.rate+params:get("global_rate"))
+          softcut.rate(3,rate*(up.rate+params:get("global_rate")))
           softcut.position(3,us.playing_position)
           if us.effect_reverse then
             for i=1,10 do
