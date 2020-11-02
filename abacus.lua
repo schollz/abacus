@@ -73,10 +73,9 @@ up={
   filename='',
   length=0,
   rate=1,
-  bpm=0,
   samples={},
   patterns={},
-  chain={1,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+  chain={1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
 }
 
 -- user constants
@@ -96,23 +95,44 @@ function init()
   -- us.available_files={'amenbreak.wav'}
   -- us.available_saves={''}
 
-  -- TODO: create data directory if it doesn't exist
+  -- create data directory if it doesn't exist
   -- and move the code audio to the data directory
+  if not util.file_exists(uc.data_dir..'Amen-break.wav') then 
+    print("making data directory")
+    util.make_dir(uc.data_dir)
+    local f=io.popen('cp '..uc.code_dir..'sounds/* '..uc.data_dir)
+    print(f:lines())
+  end
 
   -- TODO: always save play.json AND the name.json
 
   -- TODO: load files from tape/data direcotry
   local files={}
-  local files_count=0
+  local files_fullpath={}
   local f=io.popen('cd '..uc.tape_dir..'; ls -d *')
   for name in f:lines() do
+    if string.match(name,".wav") then 
     table.insert(files,name)
-    files_count=files_count+1
+    table.insert(files_fullpath,uc.tape_dir..name)
+  end
+  end
+  f=io.popen('cd '..uc.data_dir..'; ls -d *')
+  for name in f:lines() do
+    if string.match(name,".wav") then 
+    table.insert(files,name)
+    table.insert(files_fullpath,uc.data_dir..name)
+  end
   end
   table.sort(files)
-  for i,f in ipairs(files)
-    print(i.." "..f)
-  end
+  local chosen_file=''
+    for i,f in ipairs(files_fullpath) do
+      -- https://stackoverflow.com/questions/48402876/getting-current-file-name-in-lua/48403164
+      if get_file_name(f)==files[1] then 
+        chosen_file=f
+        print(chosen_file)
+        break
+      end
+    end
 
   local specs={}
   specs.AMP=ControlSpec.new(0,1,'lin',0,1,'')
@@ -120,6 +140,33 @@ function init()
   specs.FILTER_RESONANCE=ControlSpec.new(0.05,1,'lin',0,0.25,'')
   specs.PERCENTAGEADD=ControlSpec.new(-1,1,'lin',0.01,0,'%')
   specs.PERCENTAGE=ControlSpec.new(0,1,'lin',0.01,0,'%')
+
+ params:add {
+    type = 'option',
+    id = 'load_sample',
+    name = 'choose sample',
+    options = files,
+    action = function(value)
+    for i,f in ipairs(files_fullpath) do
+      -- https://stackoverflow.com/questions/48402876/getting-current-file-name-in-lua/48403164
+      if get_file_name(f)==files[value] then 
+        chosen_file=f
+        print(chosen_file)
+        break
+      end
+    end
+  end}
+
+params:add {
+    type = 'trigger',
+    id = 'load_loops',
+    name = 'load sample',
+    action = function(value)
+      initialize_samples()
+      load_sample(chosen_file)
+    end
+  }
+
 
   params:add{
     type='control',
@@ -218,6 +265,8 @@ function init()
   -- }
   -- TODO: add individual parameters for pitching up/down specific samples
 
+  initialize_samples()
+
   -- initialize softcut
   for i=1,3 do
     softcut.enable(i,1)
@@ -236,17 +285,6 @@ function init()
   softcut.phase_quant(1,0.025)
   softcut.event_render(update_render)
 
-  -- initialize samples
-  local alphabet='ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-  for i=1,26 do
-    up.samples[i]={}
-    up.samples[i].start=0
-    up.samples[i].length=0
-    up.samples[i].name=alphabet:sub(i,i)
-  end
-  for i=1,8 do
-    up.patterns[i]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
-  end
 
   -- position poll
   softcut.event_phase(update_positions)
@@ -262,44 +300,31 @@ function init()
   timer.event=update_timer
   timer:start()
 
-  up.filename=uc.code_dir..'sounds/Amen-break.wav'
-  load_sample()
-  up.bpm=120
-  -- us.sample_cur=2
-  -- up.samples[1].start=0.32
-  -- up.samples[1].length=4*clock.get_beat_sec()/4
-  -- up.samples[2].start=0
-  -- up.samples[2].length=4*clock.get_beat_sec()/4
-  -- up.samples[3].start=0.591
-  -- up.samples[3].length=2*clock.get_beat_sec()/4
-  -- up.patterns[1][1]=2
-  -- up.patterns[1][2]=2
-  -- up.patterns[1][3]=2
-  -- up.patterns[1][4]=2
-  -- up.patterns[1][7]=1
-  -- up.patterns[1][8]=1
-  -- up.patterns[1][9]=1
-  -- up.patterns[1][10]=1
-  -- up.patterns[1][13]=3.1
-  -- up.patterns[1][14]=3.1
-  -- up.patterns[1][15]=3.2
-  -- up.patterns[1][16]=3.2
-  -- up.patterns[2][1]=2
-  -- up.patterns[2][2]=2
-  -- up.patterns[2][3]=2
-  -- up.patterns[2][4]=2
-  -- up.patterns[3][1]=2
-  -- up.patterns[3][2]=2
-  -- up.patterns[3][3]=2
-  -- up.patterns[3][4]=2
-  -- up.patterns[4][1]=2
-  -- up.patterns[4][2]=2
-  -- up.patterns[4][3]=2
-  -- up.patterns[4][4]=2
   parameters_load("play.json")
-  us.mode=0
 end
 
+function initialize_samples()
+up={
+  filename_save='1.json',
+  filename='',
+  length=0,
+  rate=1,
+  samples={},
+  patterns={},
+  chain={1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+}
+  -- initialize samples
+  local alphabet='ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+  for i=1,26 do
+    up.samples[i]={}
+    up.samples[i].start=0
+    up.samples[i].length=0
+    up.samples[i].name=alphabet:sub(i,i)
+  end
+  for i=1,8 do
+    up.patterns[i]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
+  end
+end
 --
 -- updaters
 --
@@ -418,7 +443,7 @@ function update_beat()
         softcut.position(1,up.samples[sample_id].start)
         redraw()
         -- TODO: remove this image drawing
-        _norns.screen_export_png("/home/we/dust/abacus_"..clock.get_beat()..".png")
+        -- _norns.screen_export_png("/home/we/dust/abacus_"..clock.get_beat()..".png")
       end
     end)
     ::continue::
@@ -451,9 +476,10 @@ end
 --
 -- sample controls
 --
-function load_sample()
+function load_sample(filename)
   -- load file
-  up.length,up.rate,up.bpm=load_file(up.filename)
+  up.filename = filename
+  up.length,up.rate=load_file(filename)
   update_waveform_view(0,up.length)
 end
 
@@ -479,6 +505,7 @@ end
 -- save/load
 --
 function parameters_save(filename)
+  up.filename_save=filename
   data=json.encode(up)
   print(data)
   file=io.open(uc.data_dir..filename,"w+")
@@ -495,6 +522,7 @@ function parameters_load(filename)
     local content=f:read("*all")
     up=json.decode(content)
     f:close()
+    load_sample(up.filename)
   end
 end
 
@@ -526,6 +554,7 @@ function enc(n,d)
     up.samples[us.sample_cur].start=util.clamp(up.samples[us.sample_cur].start+x,0,up.length)
     if up.samples[us.sample_cur].length==0 then
       up.samples[us.sample_cur].length=clock.get_beat_sec()/4
+      up.samples[us.sample_cur].start=util.clamp(up.samples[us.sample_cur].start,us.waveform_view[1],up.length)
     end
     if up.samples[us.sample_cur].start<us.waveform_view[1] or up.samples[us.sample_cur].start+up.samples[us.sample_cur].length>us.waveform_view[2] then
       update_waveform_view(up.samples[us.sample_cur].start,up.samples[us.sample_cur].start+up.samples[us.sample_cur].length)
@@ -876,9 +905,7 @@ function load_file(file)
   duration=samples/48000.0
   softcut.buffer_read_mono(file,0,0,-1,1,1)
   print("loaded "..file.." sr="..samplerate..", duration="..duration)
-  local bpm=clock.get_tempo()
-  -- TODO: get bpm from file
-  return duration,rate,bpm
+  return duration,rate
 end
 
 function table.clone(org)
@@ -886,3 +913,7 @@ function table.clone(org)
 end
 
 
+
+function get_file_name(file)
+      return file:match("^.+/(.+)$")
+end
