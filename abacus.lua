@@ -96,6 +96,12 @@ function init()
   -- us.available_files={'amenbreak.wav'}
   -- us.available_saves={''}
 
+  -- TODO: create data directory if it doesn't exist
+  -- and move the code audio to the data directory
+
+  -- TODO: always save play.json AND the name.json
+
+  -- TODO: load files from tape/data direcotry
   local files={}
   local files_count=0
   local f=io.popen('cd '..uc.tape_dir..'; ls -d *')
@@ -410,13 +416,9 @@ function update_beat()
         us.playing_sampleid=sample_id
         us.playing_sample={up.samples[sample_id].start,us.playing_loop_end}
         softcut.position(1,up.samples[sample_id].start)
-        -- softcut.rate(1,up.rate*clock.get_tempo()/up.bpm)
-        -- softcut.loop_start(1,sample_start)
-        -- softcut.level(1,1)
-        -- softcut.play(1,1)
-        -- TODO: figure out position in chain/pattern/sample
-        -- TODO: add effects
         redraw()
+        -- TODO: remove this image drawing
+        _norns.screen_export_png("/home/we/dust/abacus_"..clock.get_beat()..".png")
       end
     end)
     ::continue::
@@ -579,6 +581,8 @@ function key(n,z)
     us.effect_reverse=not us.effect_stutter
     us.effect_on=true
   elseif n==3 and z==1 and us.shift then
+    -- TODO, if mode == 1 then toggle playback
+    -- of current pattern ONLY 
     -- toggle playback
     parameters_save("play.json")
     us.playing=not us.playing
