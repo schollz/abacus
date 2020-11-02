@@ -98,7 +98,7 @@ function init()
 
   -- create data directory if it doesn't exist
   -- and move the code audio to the data directory
-  if not util.file_exists(uc.data_dir..'Amen-break.wav') then 
+  if not util.file_exists(uc.data_dir..'Amen-break.wav') then
     print("making data directory")
     util.make_dir(uc.data_dir)
     local f=io.popen('cp '..uc.code_dir..'sounds/* '..uc.data_dir)
@@ -113,18 +113,18 @@ function init()
   local previous_files_fullpath={}
   local f=io.popen('cd '..uc.tape_dir..'; ls -d *')
   for name in f:lines() do
-    if string.match(name,".wav") then 
-    table.insert(files,name:match("^(.+).wav$"))
-    table.insert(files_fullpath,uc.tape_dir..name)
-  end
+    if string.match(name,".wav") then
+      table.insert(files,name:match("^(.+).wav$"))
+      table.insert(files_fullpath,uc.tape_dir..name)
+    end
   end
   f=io.popen('cd '..uc.data_dir..'; ls -d *')
   for name in f:lines() do
-    if string.match(name,".wav") then 
+    if string.match(name,".wav") then
       table.insert(files,name:match("^(.+).wav$"))
       table.insert(files_fullpath,uc.data_dir..name)
     end
-    if string.match(name,".wav.json") then 
+    if string.match(name,".wav.json") then
       table.insert(previous_files,name:match("^(.+).wav.json$"))
       table.insert(previous_files_fullpath,uc.data_dir..name)
     end
@@ -132,21 +132,21 @@ function init()
   table.sort(files)
   table.sort(previous_files)
   local chosen_file=''
-    for i,f in ipairs(files_fullpath) do
-      -- https://stackoverflow.com/questions/48402876/getting-current-file-name-in-lua/48403164
-      if get_file_name(f)==files[1]..".wav" then 
-        chosen_file=f
-        break
-      end
+  for i,f in ipairs(files_fullpath) do
+    -- https://stackoverflow.com/questions/48402876/getting-current-file-name-in-lua/48403164
+    if get_file_name(f)==files[1]..".wav" then
+      chosen_file=f
+      break
     end
+  end
   local previous_chosen_file=''
-    for i,f in ipairs(previous_files_fullpath) do
-      -- https://stackoverflow.com/questions/48402876/getting-current-file-name-in-lua/48403164
-      if get_file_name(f)==previous_files[1]..".wav.json" then 
-        previous_chosen_file=f
-        break
-      end
+  for i,f in ipairs(previous_files_fullpath) do
+    -- https://stackoverflow.com/questions/48402876/getting-current-file-name-in-lua/48403164
+    if get_file_name(f)==previous_files[1]..".wav.json" then
+      previous_chosen_file=f
+      break
     end
+  end
 
   local specs={}
   specs.AMP=ControlSpec.new(0,1,'lin',0,1,'')
@@ -155,59 +155,61 @@ function init()
   specs.PERCENTAGEADD=ControlSpec.new(-1,1,'lin',0.01,0,'%')
   specs.PERCENTAGE=ControlSpec.new(0,1,'lin',0.01,0,'%')
 
-params:add_separator("abacus")
-params:add_group("memory",4)
- params:add {
-    type = 'option',
-    id = 'load_sample',
-    name = 'choose sample',
-    options = files,
-    action = function(value)
-    for i,f in ipairs(files_fullpath) do
-      -- https://stackoverflow.com/questions/48402876/getting-current-file-name-in-lua/48403164
-      if get_file_name(f)==files[value]..".wav" then 
-        chosen_file=f
-        break
+  params:add_separator("abacus")
+  params:add_group("memory",4)
+  params:add {
+    type='option',
+    id='load_sample',
+    name='choose sample',
+    options=files,
+    action=function(value)
+      for i,f in ipairs(files_fullpath) do
+        -- https://stackoverflow.com/questions/48402876/getting-current-file-name-in-lua/48403164
+        if get_file_name(f)==files[value]..".wav" then
+          chosen_file=f
+          break
+        end
       end
     end
-  end}
+  }
 
-params:add {
-    type = 'trigger',
-    id = 'load_loops',
-    name = 'load sample',
-    action = function(value)
+  params:add {
+    type='trigger',
+    id='load_loops',
+    name='load sample',
+    action=function(value)
       initialize_samples()
       load_sample(chosen_file)
     end
   }
 
- params:add {
-    type = 'option',
-    id = 'load_previous',
-    name = 'choose previous',
-    options = previous_files,
-    action = function(value)
-    for i,f in ipairs(previous_files_fullpath) do
-      -- https://stackoverflow.com/questions/48402876/getting-current-file-name-in-lua/48403164
-      if get_file_name(f)==previous_files[value]..".wav.json" then 
-        previous_chosen_file=f
-        break
+  params:add {
+    type='option',
+    id='load_previous',
+    name='choose previous',
+    options=previous_files,
+    action=function(value)
+      for i,f in ipairs(previous_files_fullpath) do
+        -- https://stackoverflow.com/questions/48402876/getting-current-file-name-in-lua/48403164
+        if get_file_name(f)==previous_files[value]..".wav.json" then
+          previous_chosen_file=f
+          break
+        end
       end
     end
-  end}
+  }
 
-params:add {
-    type = 'trigger',
-    id = 'open_previous',
-    name = 'load previous',
-    action = function(value)
+  params:add {
+    type='trigger',
+    id='open_previous',
+    name='load previous',
+    action=function(value)
       initialize_samples()
       parameters_load(previous_chosen_file)
     end
   }
 
-params:add_group("effects",5)
+  params:add_group("effects",5)
   params:add{
     type='control',
     id='global_rate',
@@ -277,11 +279,11 @@ params:add_group("effects",5)
     softcut.position(i,0)
     softcut.level_slew_time(i,clock.get_beat_sec()/4)
     softcut.rate_slew_time(i,clock.get_beat_sec()/4)
-    softcut.post_filter_dry(i, 0.0)
-    softcut.post_filter_lp(i, 1.0)
-    softcut.post_filter_rq(i, 0.3)
-    softcut.post_filter_fc(i, 44100)
-    end
+    softcut.post_filter_dry(i,0.0)
+    softcut.post_filter_lp(i,1.0)
+    softcut.post_filter_rq(i,0.3)
+    softcut.post_filter_fc(i,44100)
+  end
   softcut.level(3,0)
   softcut.play(3,1)
   softcut.phase_quant(1,0.025)
@@ -306,15 +308,15 @@ params:add_group("effects",5)
 end
 
 function initialize_samples()
-up={
-  filename_save='1.json',
-  filename='',
-  length=0,
-  rate=1,
-  samples={},
-  patterns={},
-  chain={1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-}
+  up={
+    filename_save='1.json',
+    filename='',
+    length=0,
+    rate=1,
+    samples={},
+    patterns={},
+    chain={1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+  }
   -- initialize samples
   local alphabet='ABCDEFGHIJKLMNOPQRSTUVWXYZ'
   for i=1,26 do
@@ -360,10 +362,10 @@ function update_beat()
     clock.run(function()
       us.playing_beat=us.playing_beat+1
       if us.playing_beat>16 then
-        if us.playing_once ==2  then 
+        if us.playing_once==2 then
           print("playing once!")
-          us.playing_once = 1
-        elseif us.playing_once==1 then 
+          us.playing_once=1
+        elseif us.playing_once==1 then
           us.playing_once=0
           us.playing=false
           return
@@ -491,7 +493,7 @@ end
 --
 function load_sample(filename)
   -- load file
-  up.filename = filename
+  up.filename=filename
   up.length,up.rate=load_file(filename)
   update_waveform_view(0,up.length)
 end
@@ -619,7 +621,7 @@ function key(n,z)
     us.effect_reverse=not us.effect_stutter
   elseif n==3 and z==1 and us.shift then
     -- TODO, if mode == 1 then toggle playback
-    -- of current pattern ONLY 
+    -- of current pattern ONLY
     -- toggle playback
     parameters_save()
     if not us.playing then
@@ -635,7 +637,7 @@ function key(n,z)
     us.playing_sample={0,0}
     us.playing_beat=17
     us.playing_pattern=1 -- TODO: should be first in chain
-    if us.mode==1 then 
+    if us.mode==1 then
       us.playing_once=2
     end
     us.playing=not us.playing
@@ -920,7 +922,7 @@ end
 
 
 function get_file_name(file)
-      return file:match("^.+/(.+)$")
+  return file:match("^.+/(.+)$")
 end
 
 function write_file(fname,data)
@@ -930,3 +932,5 @@ function write_file(fname,data)
   io.write(data)
   io.close(file)
 end
+
+
