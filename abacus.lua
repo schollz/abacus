@@ -68,6 +68,7 @@ us={
   effect_on=false,
   effect_stutter=false,
   effect_reverse=false,
+  one_shot=false
 }
 -- user parameters
 -- put things that can be saved
@@ -508,22 +509,31 @@ function load_sample(filename)
   update_waveform_view(0,up.length)
 end
 
-function sample_one_shot()
+function sample_one_shot(z)
+  if z==0 then 
+	  -- stop looping
+	  us.one_shot=false
+	  softcut.loop(2,0)
+    us.playing_sample={0,0}
+  else
+	  us.one_shot=true
+	  sample_one_shot_update()
+  softcut.loop(2,1)
+  softcut.play(2,1)
+  softcut.rate(2,up.rate+params:get("global_rate"))
+  end
+    us.update_ui=true
+end
+
+function sample_one_shot_update()
+	if not us.one_shot then do return end  end
   local s=up.samples[us.sample_cur].start
   local e=up.samples[us.sample_cur].start+up.samples[us.sample_cur].length
-  print("sample_length "..up.samples[us.sample_cur].length)
-  clock.run(function()
     us.playing_sample={s,e}
-    redraw()
-    clock.sleep(e-s)
-    us.playing_sample={0,0}
-    redraw()
-  end)
-  softcut.rate(2,up.rate+params:get("global_rate"))
   softcut.position(2,s)
   softcut.loop_start(2,s)
   softcut.loop_end(2,e)
-  softcut.play(2,1)
+us.update_ui=true
 end
 
 --
@@ -583,6 +593,7 @@ function enc(n,d)
     elseif new_end>us.waveform_view[2] then
       update_waveform_view(us.waveform_view[1]+(new_end-us.waveform_view[2]),up.samples[us.sample_cur].start+up.samples[us.sample_cur].length)
     end
+    sample_one_shot_update()
   elseif n==3 and us.mode==0 then
     -- local x=d*clock.get_beat_sec()/4
     local x=d*up.length/1000
@@ -591,6 +602,7 @@ function enc(n,d)
       update_waveform_view(up.samples[us.sample_cur].start,up.samples[us.sample_cur].start+up.samples[us.sample_cur].length)
     end
     us.pattern_temp.length=util.round(up.samples[us.sample_cur].length/(clock.get_beat_sec()/4))
+    sample_one_shot_update()
   elseif n==2 and us.mode==1 then
     us.samples_usable_id=util.clamp(us.samples_usable_id+sign(d),1,#us.samples_usable)
     us.sample_cur=us.samples_usable[us.samples_usable_id]
@@ -666,9 +678,9 @@ function key(n,z)
   elseif n==2 and z==1 and us.mode==1 then
     -- make new pattern
     up.patterns[us.pattern_cur]=pattern_stamp(us.sample_cur,us.pattern_temp.start,us.pattern_temp.length)
-  elseif n==3 and z==1 then
+  elseif n==3  then
     -- play a sample at curent position
-    sample_one_shot()
+    sample_one_shot(z)
   end
   us.update_ui=true
 end
