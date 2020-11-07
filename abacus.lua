@@ -360,11 +360,16 @@ end
 function update_beat()
   local current_voice=1
   local p=up.patterns[1]
-  local phrase_start=0
-  local phrase_end=0
+  local current_level=0
   while true do
     clock.sync(1/4)
-    if us.playing==false then goto continue end
+    if us.playing==false then 
+	    if current_level==1 then 
+		    current_level=0
+		    softcut.level(1,0)
+	    end
+	    goto continue 
+    end
     clock.run(function()
       us.playing_beat=us.playing_beat+1
       if us.playing_beat>16 then
@@ -432,6 +437,10 @@ function update_beat()
         end
       elseif not us.effect_on then
         if sample_id==0 then
+    if current_level==1 then 
+	    current_level=0
+	    softcut.level(1,0)
+    end
           us.playing_pattern_segment=0
           us.playing_sample={0,0}
           us.playing_sampleid=0
@@ -442,26 +451,19 @@ function update_beat()
           return
         end
         us.playing_pattern_segment=playing_pattern_segment
-        phrase_start=us.playing_beat
-        phrase_end=start
-        for j=phrase_start,16 do
-          if us.playing_pattern_segment~=p[j] then
-            phrase_end=j
-            break
-          end
-        end
-        if phrase_start==16 then
-          phrase_end=17
-        end
         -- play sample
         local sample_start=up.samples[sample_id].start
         if up.samples[sample_id].start+up.samples[sample_id].length~=us.playing_loop_end then
           us.playing_loop_end=up.samples[sample_id].start+up.samples[sample_id].length
-          softcut.loop_end(1,us.playing_loop_end)
+	  --  softcut.loop_end(1,us.playing_loop_end)
         end
         us.playing_sampleid=sample_id
         us.playing_sample={up.samples[sample_id].start,us.playing_loop_end}
         softcut.position(1,up.samples[sample_id].start)
+    if current_level==0 then 
+	    current_level=1
+	    softcut.level(1,1)
+    end
         redraw()
       end
     end)
@@ -499,6 +501,9 @@ function load_sample(filename)
   -- load file
   up.filename=filename
   up.length,up.rate=load_file(filename)
+  softcut.loop_start(1,0)
+  softcut.loop_end(1,up.length)
+  softcut.loop(1,1)
   update_waveform_view(0,up.length)
 end
 
