@@ -404,23 +404,24 @@ function update_beat()
         us.effect_stutter=false
         us.effect_reverse=false
         if us.playing_sampleid>0 then
+          local pos=up.samples[us.playing_sampleid].start
           rate=1
           if effect_stutter then
             print("stutter")
             softcut.loop(3,1)
             local stutter_amount=math.random(4)
-            softcut.loop_end(3,us.playing_position+clock.get_beat_sec()/(64.0/stutter_amount))
-            softcut.loop_start(3,us.playing_position-clock.get_beat_sec()/(64.0/stutter_amount))
+            softcut.loop_end(3,pos+clock.get_beat_sec()/(64.0/stutter_amount))
+            softcut.loop_start(3,pos-clock.get_beat_sec()/(64.0/stutter_amount))
           else
-            softcut.loop_start(3,0)
-            softcut.loop_end(3,up.length)
+            softcut.loop_start(3,pos)
+            softcut.loop_end(3,us.playing_loop_end)
           end
           if effect_reverse then
             print("reverse")
             rate=-1
           end
           softcut.rate(3,rate*(up.rate+params:get("global_rate")))
-          softcut.position(3,us.playing_position)
+          softcut.position(3,pos)
           if us.effect_reverse then
             for i=1,10 do
               softcut.level(3,i/10.0)
