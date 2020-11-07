@@ -1,4 +1,4 @@
--- abacus v0.1.0
+-- abacus v0.1.2
 -- sequence rows of beats
 -- with samples.
 --
