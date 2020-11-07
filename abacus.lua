@@ -445,7 +445,7 @@ function update_beat()
           us.playing_pattern_segment=0
           us.playing_sample={0,0}
           us.playing_sampleid=0
-          redraw()
+	  us.update_ui=true
           return
         end
         if playing_pattern_segment==us.playing_pattern_segment then
@@ -465,7 +465,7 @@ function update_beat()
           current_level=1
           softcut.level(1,1)
         end
-        redraw()
+	us.update_ui=true
       end
     end)
     ::continue::
