@@ -1,4 +1,4 @@
--- abacus v0.1.2
+-- abacus v0.1.3
 -- sequence rows of beats
 -- with samples.
 --
@@ -14,7 +14,7 @@
 -- E2/E3 change splice position
 -- K1+K3 starts/stops chain
 -- K2 zooms
--- K3 plays sample
+-- K3 plays sample (can hold)
 --
 -- pattern mode
 -- E1 changes pattern
