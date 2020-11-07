@@ -1,5 +1,5 @@
 -- abacus v0.1.0
--- sequence rows of beats 
+-- sequence rows of beats
 -- with samples.
 --
 -- llllllll.co/t/abacus
@@ -363,12 +363,12 @@ function update_beat()
   local current_level=0
   while true do
     clock.sync(1/4)
-    if us.playing==false then 
-	    if current_level==1 then 
-		    current_level=0
-		    softcut.level(1,0)
-	    end
-	    goto continue 
+    if us.playing==false then
+      if current_level==1 then
+        current_level=0
+        softcut.level(1,0)
+      end
+      goto continue
     end
     clock.run(function()
       us.playing_beat=us.playing_beat+1
@@ -437,10 +437,10 @@ function update_beat()
         end
       elseif not us.effect_on then
         if sample_id==0 then
-    if current_level==1 then 
-	    current_level=0
-	    softcut.level(1,0)
-    end
+          if current_level==1 then
+            current_level=0
+            softcut.level(1,0)
+          end
           us.playing_pattern_segment=0
           us.playing_sample={0,0}
           us.playing_sampleid=0
@@ -455,15 +455,15 @@ function update_beat()
         local sample_start=up.samples[sample_id].start
         if up.samples[sample_id].start+up.samples[sample_id].length~=us.playing_loop_end then
           us.playing_loop_end=up.samples[sample_id].start+up.samples[sample_id].length
-	  --  softcut.loop_end(1,us.playing_loop_end)
+          --  softcut.loop_end(1,us.playing_loop_end)
         end
         us.playing_sampleid=sample_id
         us.playing_sample={up.samples[sample_id].start,us.playing_loop_end}
         softcut.position(1,up.samples[sample_id].start)
-    if current_level==0 then 
-	    current_level=1
-	    softcut.level(1,1)
-    end
+        if current_level==0 then
+          current_level=1
+          softcut.level(1,1)
+        end
         redraw()
       end
     end)
@@ -576,7 +576,7 @@ function enc(n,d)
       up.samples[us.sample_cur].length=clock.get_beat_sec()/4
       up.samples[us.sample_cur].start=util.clamp(up.samples[us.sample_cur].start,us.waveform_view[1],up.length)
     end
-    local new_end = up.samples[us.sample_cur].start+up.samples[us.sample_cur].length
+    local new_end=up.samples[us.sample_cur].start+up.samples[us.sample_cur].length
     if up.samples[us.sample_cur].start<us.waveform_view[1] then
       update_waveform_view(up.samples[us.sample_cur].start,us.waveform_view[2]+(up.samples[us.sample_cur].start-us.waveform_view[1]))
     elseif new_end>us.waveform_view[2] then
@@ -646,7 +646,7 @@ function key(n,z)
     us.playing_loop_end=0
     us.playing_sample={0,0}
     us.playing_beat=17
-    us.playing_pattern=1 
+    us.playing_pattern=1
     if us.mode==1 then
       -- toggle playback of this chain only
       us.playing_once=2
