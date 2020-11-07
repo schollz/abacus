@@ -446,7 +446,7 @@ function update_beat()
           us.playing_pattern_segment=0
           us.playing_sample={0,0}
           us.playing_sampleid=0
-	  us.update_ui=true
+          us.update_ui=true
           return
         end
         if playing_pattern_segment==us.playing_pattern_segment then
@@ -466,7 +466,7 @@ function update_beat()
           current_level=1
           softcut.level(1,1)
         end
-	us.update_ui=true
+        us.update_ui=true
       end
     end)
     ::continue::
@@ -510,30 +510,30 @@ function load_sample(filename)
 end
 
 function sample_one_shot(z)
-  if z==0 then 
-	  -- stop looping
-	  us.one_shot=false
-	  softcut.loop(2,0)
+  if z==0 then
+    -- stop looping
+    us.one_shot=false
+    softcut.loop(2,0)
     us.playing_sample={0,0}
   else
-	  us.one_shot=true
-	  sample_one_shot_update()
-  softcut.loop(2,1)
-  softcut.play(2,1)
-  softcut.rate(2,up.rate+params:get("global_rate"))
+    us.one_shot=true
+    sample_one_shot_update()
+    softcut.loop(2,1)
+    softcut.play(2,1)
+    softcut.rate(2,up.rate+params:get("global_rate"))
   end
-    us.update_ui=true
+  us.update_ui=true
 end
 
 function sample_one_shot_update()
-	if not us.one_shot then do return end  end
-  local s=up.samples[us.sample_cur].start
+  if not us.one_shot then do return end end
+local s=up.samples[us.sample_cur].start
   local e=up.samples[us.sample_cur].start+up.samples[us.sample_cur].length
-    us.playing_sample={s,e}
+  us.playing_sample={s,e}
   softcut.position(2,s)
   softcut.loop_start(2,s)
   softcut.loop_end(2,e)
-us.update_ui=true
+  us.update_ui=true
 end
 
 --
@@ -678,7 +678,7 @@ function key(n,z)
   elseif n==2 and z==1 and us.mode==1 then
     -- make new pattern
     up.patterns[us.pattern_cur]=pattern_stamp(us.sample_cur,us.pattern_temp.start,us.pattern_temp.length)
-  elseif n==3  then
+  elseif n==3 then
     -- play a sample at curent position
     sample_one_shot(z)
   end
