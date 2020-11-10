@@ -68,7 +68,10 @@ us={
   effect_on=false,
   effect_stutter=false,
   effect_reverse=false,
-  one_shot=false
+  one_shot=false,
+  crow_sample_cur=0,
+  crow_position=0,
+  crow_gate=0,
 }
 -- user parameters
 -- put things that can be saved
@@ -224,7 +227,7 @@ function init()
     controlspec=specs.PERCENTAGEADD,
     formatter=Formatters.percentage,
     action=function(x)
-      for i=1,3 do
+      for i=1,4 do
         softcut.rate(i,up.rate+x)
       end
     end
@@ -262,7 +265,7 @@ function init()
     controlspec=specs.FILTER_FREQ,
     formatter=Formatters.format_freq,
     action=function(value)
-      for i=1,3 do
+      for i=1,4 do
         softcut.post_filter_fc(i,value)
       end
     end
@@ -274,17 +277,59 @@ function init()
     name='filter resonance',
     controlspec=specs.FILTER_RESONANCE,
     action=function(value)
-      for i=1,3 do
+      for i=1,4 do
         softcut.post_filter_rq(i,value)
       end
     end
   }
+
   -- TODO: add individual parameters for pitching up/down specific samples
+
+ params:add_group("crow",3)
+   params:add {
+    type='option',
+    id='crow_mode',
+    name='crow mode',
+    options={"free","sampling"},
+    action=function(value)
+      if value == 1 then 
+        softcut.loop(4,1)
+        softcut.loop_start(4,0)
+        softcut.loop_end(4,up.length)
+      end
+    end
+  }
+
+
+  params:add {
+    type='control',
+    id='gate_voltage',
+    name='gate voltage',
+    controlspec=ControlSpec.new(-5,10,'lin',0.01,2,'volts'),
+    action=function(value)
+      crow.input[1].mode("change",value,0.25,"both")
+    end
+  }
+
+  params:add {
+    type='option',
+    id='crow_gating',
+    name='gating',
+    options={"continuous","once"},
+    action=function(value)
+      if value == 1 then 
+        softcut.loop(4,1)
+      else
+        softcut.loop(4,0)
+      end
+    end
+  }
+
 
   initialize_samples()
 
   -- initialize softcut
-  for i=1,3 do
+  for i=1,4 do
     softcut.enable(i,1)
     softcut.level(i,1)
     softcut.pan(i,0)
@@ -302,6 +347,7 @@ function init()
   end
   softcut.level(3,0)
   softcut.play(3,1)
+  softcut.loop(4,1)
   softcut.phase_quant(1,0.025)
   softcut.event_render(update_render)
 
@@ -320,7 +366,14 @@ function init()
   timer.event=update_timer
   timer:start()
 
+  -- initialize crow 
+  crow.input[1].change = process_change
+  crow.input[1].mode("change",2.0,0.25,"both")
+  crow.input[2].stream = process_stream
+  crow.input[2].mode("stream",0.1)
+
   parameters_load(uc.data_dir.."play.json")
+  crow_test()
 end
 
 function initialize_samples()
@@ -897,6 +950,71 @@ function redraw()
 
   screen.update()
 end
+
+--
+-- crow
+--
+
+function crow_test()
+  process_stream(0)
+  process_change(1)
+end
+
+function process_stream(v)
+  if params:get("crow_mode") == 2 then 
+    -- sample mode 
+    us.samples_usable={}
+    for i=1,#up.samples do
+      if up.samples[i].length>0 then
+        table.insert(us.samples_usable,i)
+      end
+    end
+    us.crow_sample_cur = us.samples_usable[util.round(util.linlin(-10,10,1,#us.samples_usable,v))]
+    local s=up.samples[us.crow_sample_cur].start
+    local e=up.samples[us.crow_sample_cur].start+up.samples[us.crow_sample_cur].length
+    us.playing_sample={s,e}
+    softcut.loop_start(4,s)
+    softcut.loop_end(4,e)
+    if us.crow_gating == 1 then 
+      process_change(1)
+    end    
+  else
+    -- free mode 
+    us.crow_position = util.linlin(-10,10,0,up.length,v)
+    print("setting new position "..us.crow_position)
+    softcut.position(4,us.crow_position)
+    softcut.loop_end(4,up.length)
+  end
+end
+
+function process_change(s)
+  us.crow_gating=s
+  if params:get("crow_mode") == 2 then 
+    -- sample mode 
+    -- keep playing current sample until gate is off
+    if s==1 and us.crow_sample_cur > 0 then 
+      softcut.play(4,1)
+      softcut.rate(4,up.rate+params:get("global_rate"))
+      softcut.position(4,up.samples[us.crow_sample_cur].start)
+      softcut.loop(4,0)
+      us.update_ui=true
+    else
+      softcut.loop(4,0)
+    end
+  else
+    -- free mode, start playing at current position
+    if s==1 then 
+      softcut.position(4,us.crow_position)
+      softcut.play(4,1)
+      softcut.rate(4,up.rate+params:get("global_rate"))
+      softcut.level(4,1)
+    else
+      softcut.rate(4,0)
+      softcut.level(4,0)
+    end
+  end
+end
+
 
 --
 -- utils
