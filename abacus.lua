@@ -436,23 +436,24 @@ function update_beat()
   local p=up.patterns[1]
   local current_level=0
   local is_slowing=false
-  local was_playing=false 
+  local was_playing=false
   while true do
     clock.sync(1/4)
     if not us.playing then
-      if was_playing then 
+      if was_playing then
         -- turn off playing
         current_level=0
         softcut.level(1,0)
         softcut.play(1,0)
-        was_playing = false 
+        was_playing=false
       end
       goto continue
-    else if us.playing and clock.get_beats()<0.25 then 
-      -- clock has been reset, (re-)initialize playing 
-      if not was_playing then 
+    elseif us.playing and clock.get_beats()<0.25 then
+      -- clock has been reset, (re-)initialize playing
+      if not was_playing then
         parameters_save()
       end
+      print("playing!")
       softcut.rate(1,up.rate+params:get("global_rate"))
       softcut.level(1,1)
       softcut.play(1,1)
@@ -463,11 +464,10 @@ function update_beat()
       us.playing_pattern=1
       if us.mode==1 then
         -- toggle playback of this chain only
+        print("but just once")
         us.playing_once=2
       end
-      was_playing = true
-    else
-      goto continue
+      was_playing=true
     end
     clock.run(function()
       us.playing_beat=us.playing_beat+1
@@ -649,8 +649,8 @@ end
 
 function trigger_play(on)
   -- toggle playback
-  if on then 
-    -- send osc 
+  if on then
+    -- send osc
     osc.send({"127.0.0.1",10111},"/param/clock_reset",{1})
   end
   us.playing=on
@@ -1118,5 +1118,7 @@ function write_file(fname,data)
   io.write(data)
   io.close(file)
 end
+
+
 
 
