@@ -286,14 +286,14 @@ function init()
 
   -- TODO: add individual parameters for pitching up/down specific samples
 
- params:add_group("crow",4)
-   params:add {
+  params:add_group("crow",4)
+  params:add {
     type='option',
     id='crow_mode',
     name='crow mode',
     options={"free","samples"},
     action=function(value)
-      if value == 1 then 
+      if value==1 then
         softcut.loop(4,1)
         softcut.loop_start(4,0)
         softcut.loop_end(4,up.length)
@@ -318,7 +318,7 @@ function init()
     name='gating',
     options={"once","continuous"},
     action=function(value)
-      if value == 1 then 
+      if value==1 then
         softcut.loop(4,0)
       else
         softcut.loop(4,1)
@@ -378,10 +378,10 @@ function init()
   timer.event=update_timer
   timer:start()
 
-  -- initialize crow 
-  crow.input[1].change = process_change
+  -- initialize crow
+  crow.input[1].change=process_change
   crow.input[1].mode("change",2.0,0.25,"both")
-  crow.input[2].stream = process_stream
+  crow.input[2].stream=process_stream
   crow.input[2].mode("stream",0.1)
 
   parameters_load(uc.data_dir.."play.json")
@@ -435,14 +435,38 @@ function update_beat()
   local current_voice=1
   local p=up.patterns[1]
   local current_level=0
-  local is_slowing = false 
+  local is_slowing=false
+  local was_playing=false 
   while true do
     clock.sync(1/4)
-    if us.playing==false then
-      if current_level==1 then
+    if not us.playing then
+      if was_playing then 
+        -- turn off playing
         current_level=0
         softcut.level(1,0)
+        softcut.play(1,0)
+        was_playing = false 
       end
+      goto continue
+    else if us.playing and clock.get_beats()<0.25 then 
+      -- clock has been reset, (re-)initialize playing 
+      if not was_playing then 
+        parameters_save()
+      end
+      softcut.rate(1,up.rate+params:get("global_rate"))
+      softcut.level(1,1)
+      softcut.play(1,1)
+      us.playing_chain=0
+      us.playing_loop_end=0
+      us.playing_sample={0,0}
+      us.playing_beat=17
+      us.playing_pattern=1
+      if us.mode==1 then
+        -- toggle playback of this chain only
+        us.playing_once=2
+      end
+      was_playing = true
+    else
       goto continue
     end
     clock.run(function()
@@ -476,15 +500,15 @@ function update_beat()
       effect_stutter=us.effect_stutter or math.random()<params:get("effect_stutter")
       effect_reverse=us.effect_reverse or math.random()<params:get("effect_reverse")
       if effect_slow then
-      	clock.run(function()
-      	  is_slowing=true
-      	  local slow_time = clock.get_beat_sec()*(math.random(2))
+        clock.run(function()
+          is_slowing=true
+          local slow_time=clock.get_beat_sec()*(math.random(2))
           softcut.rate_slew_time(1,slow_time)
-      	  softcut.rate(1,0.5*up.rate+params:get("global_rate"))
-      	  clock.sleep(slow_time)
-      	  softcut.rate(1,up.rate+params:get("global_rate"))
-      	  is_slowing = false
-      	end)
+          softcut.rate(1,0.5*up.rate+params:get("global_rate"))
+          clock.sleep(slow_time)
+          softcut.rate(1,up.rate+params:get("global_rate"))
+          is_slowing=false
+        end)
       elseif (effect_stutter or effect_reverse) and us.playing_once==0 and not is_slowing then
         us.effect_on=false
         us.effect_stutter=false
@@ -622,6 +646,16 @@ local s=up.samples[us.sample_cur].start
   us.update_ui=true
 end
 
+
+function trigger_play(on)
+  -- toggle playback
+  if on then 
+    -- send osc 
+    osc.send({"127.0.0.1",10111},"/param/clock_reset",{1})
+  end
+  us.playing=on
+end
+
 --
 -- save/load
 --
@@ -731,26 +765,7 @@ function key(n,z)
     us.effect_stutter=n==2
     us.effect_reverse=not us.effect_stutter
   elseif n==3 and z==1 and us.shift then
-    -- toggle playback
-    parameters_save()
-    if not us.playing then
-      softcut.rate(1,up.rate+params:get("global_rate"))
-      softcut.level(1,1)
-      softcut.play(1,1)
-    else
-      softcut.level(1,0)
-      softcut.play(1,0)
-    end
-    us.playing_chain=0
-    us.playing_loop_end=0
-    us.playing_sample={0,0}
-    us.playing_beat=17
-    us.playing_pattern=1
-    if us.mode==1 then
-      -- toggle playback of this chain only
-      us.playing_once=2
-    end
-    us.playing=not us.playing
+    trigger_play(not us.playing)
   elseif n==2 and z==1 and us.mode==0 then
     if up.samples[us.sample_cur].start==us.waveform_view[1] and up.samples[us.sample_cur].start+up.samples[us.sample_cur].length==us.waveform_view[2] then
       update_waveform_view(0,up.length)
@@ -968,26 +983,26 @@ end
 --
 
 function process_stream(v)
-  if params:get("crow_mode") == 2 then 
-    -- sample mode 
+  if params:get("crow_mode")==2 then
+    -- sample mode
     us.samples_usable={}
     for i=1,#up.samples do
       if up.samples[i].length>0 then
         table.insert(us.samples_usable,i)
       end
     end
-    us.crow_sample_cur = us.samples_usable[util.round(util.linlin(-10,10,1,#us.samples_usable,v))]
+    us.crow_sample_cur=us.samples_usable[util.round(util.linlin(-10,10,1,#us.samples_usable,v))]
     local s=up.samples[us.crow_sample_cur].start
     local e=up.samples[us.crow_sample_cur].start+up.samples[us.crow_sample_cur].length
     us.playing_sample={s,e}
     softcut.loop_start(4,s)
     softcut.loop_end(4,e)
-    if us.crow_gating == 1 then 
+    if us.crow_gating==1 then
       process_change(1)
-    end    
+    end
   else
-    -- free mode 
-    us.crow_position = util.linlin(-10,10,0,up.length,v)
+    -- free mode
+    us.crow_position=util.linlin(-10,10,0,up.length,v)
     print("setting new position "..us.crow_position)
     softcut.position(4,us.crow_position)
     softcut.loop_end(4,up.length)
@@ -996,10 +1011,10 @@ end
 
 function process_change(s)
   us.crow_gating=s
-  if params:get("crow_mode") == 2 then 
-    -- sample mode 
+  if params:get("crow_mode")==2 then
+    -- sample mode
     -- keep playing current sample until gate is off
-    if s==1 and us.crow_sample_cur > 0 then 
+    if s==1 and us.crow_sample_cur>0 then
       softcut.play(4,1)
       softcut.level(4,1)
       softcut.position(4,up.samples[us.crow_sample_cur].start)
@@ -1011,7 +1026,7 @@ function process_change(s)
     end
   else
     -- free mode, start playing at current position
-    if s==1 then 
+    if s==1 then
       softcut.position(4,us.crow_position)
       softcut.play(4,1)
       softcut.level(4,1)
