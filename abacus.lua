@@ -54,6 +54,7 @@ us={
   chain_cur=1,
   pattern_temp={start=1,length=1},
   playing=false,-- is playing or not
+  waiting_for_first_beat=false,
   playing_sample={0,0},-- width of sample being played
   playing_beat=0,-- current
   playing_chain=1,
@@ -384,8 +385,24 @@ function init()
   crow.input[2].stream = process_stream
   crow.input[2].mode("stream",0.1)
 
+  -- wait for input 
+  p_amp_in=poll.set("amp_in_l")
+  -- set period low when primed, default 1 second
+  p_amp_in.time=0.005
+  p_amp_in.callback=update_audio
+  p_amp_in:start()  
+
   parameters_load(uc.data_dir.."play.json")
 end
+
+
+function update_audio(val)
+  if val > 0.05 and us.waiting_for_first_beat then 
+    print("starting")
+    osc.send({"127.0.0.1",10111},"/param/clock_reset",{1})
+  end
+end
+
 
 function initialize_samples()
   up={
@@ -431,19 +448,49 @@ function update_timer()
   end
 end
 
+function clock.transport.start()
+  print("clock started")
+end
+
+function clock.transport.stop()
+  print("clock stopped")
+end
+
 function update_beat()
   local current_voice=1
   local p=up.patterns[1]
   local current_level=0
   local is_slowing = false 
+  local is_playing = false
+  us.waiting_for_first_beat=true
   while true do
     clock.sync(1/4)
     if us.playing==false then
+      if is_playing then 
+      softcut.level(1,0)
+      softcut.play(1,0)
+      is_playing=false
+      us.waiting_for_first_beat = true
+      p_amp_in.time=0.01
+    end
       if current_level==1 then
         current_level=0
         softcut.level(1,0)
       end
       goto continue
+    end
+    if us.waiting_for_first_beat then 
+      if clock.get_beats() < 0.2 then 
+        print("first beat!")
+      softcut.rate(1,up.rate+params:get("global_rate"))
+      softcut.level(1,1)
+      softcut.play(1,1)
+        us.waiting_for_first_beat = false 
+        is_playing = true 
+      p_amp_in.time=1
+      else
+        goto continue
+      end
     end
     clock.run(function()
       us.playing_beat=us.playing_beat+1
@@ -733,14 +780,6 @@ function key(n,z)
   elseif n==3 and z==1 and us.shift then
     -- toggle playback
     parameters_save()
-    if not us.playing then
-      softcut.rate(1,up.rate+params:get("global_rate"))
-      softcut.level(1,1)
-      softcut.play(1,1)
-    else
-      softcut.level(1,0)
-      softcut.play(1,0)
-    end
     us.playing_chain=0
     us.playing_loop_end=0
     us.playing_sample={0,0}
