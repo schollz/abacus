@@ -432,6 +432,9 @@ function init()
   crow.input[2].stream=process_stream
   crow.input[2].mode("stream",0.1)
 
+  -- initialize midi
+  m=midi.connect()
+  m.event=midi_event
   parameters_load(uc.data_dir.."play.json")
 end
 
@@ -1087,6 +1090,12 @@ function process_change(s)
   end
 end
 
+--
+-- midi handling
+--
+function midi_event(data)
+  print(tab.print(midi.to_msg(data)))
+end
 
 --
 -- utils
