@@ -55,6 +55,7 @@ us={
   pattern_temp={start=1,length=1},
   playing=false,-- is playing or not
   waiting_for_first_beat=false,
+  playing_got_midi=false,
   playing_sample={0,0},-- width of sample being played
   playing_beat=0,-- current
   playing_chain=1,
@@ -385,24 +386,25 @@ function init()
   crow.input[2].stream = process_stream
   crow.input[2].mode("stream",0.1)
 
-  -- wait for input 
-  p_amp_in=poll.set("amp_in_l")
-  -- set period low when primed, default 1 second
-  p_amp_in.time=0.005
-  p_amp_in.callback=update_audio
-  p_amp_in:start()  
-
   parameters_load(uc.data_dir.."play.json")
-end
 
-
-function update_audio(val)
-  if val > 0.05 and us.waiting_for_first_beat then 
-    print("starting")
-    osc.send({"127.0.0.1",10111},"/param/clock_reset",{1})
+  m = midi.connect()
+m.event = function(data) 
+if data[1] ~= 248 then
+  if data[1]==251 then
+    us.playing=true
+    us.playing_got_midi = true
+osc.send({"127.0.0.1",10111},"/param/clock_reset",{1})
+playing_toggle(true)
+elseif data[1]==252 then 
+  us.playing_got_midi=false 
+playing_toggle(false)
   end
+
+end
 end
 
+end
 
 function initialize_samples()
   up={
@@ -465,13 +467,13 @@ function update_beat()
   us.waiting_for_first_beat=true
   while true do
     clock.sync(1/4)
+    print(clock.get_beats())
     if us.playing==false then
       if is_playing then 
       softcut.level(1,0)
       softcut.play(1,0)
       is_playing=false
       us.waiting_for_first_beat = true
-      p_amp_in.time=0.01
     end
       if current_level==1 then
         current_level=0
@@ -480,14 +482,13 @@ function update_beat()
       goto continue
     end
     if us.waiting_for_first_beat then 
-      if clock.get_beats() < 0.2 then 
+      if us.playing_got_midi then 
         print("first beat!")
       softcut.rate(1,up.rate+params:get("global_rate"))
       softcut.level(1,1)
       softcut.play(1,1)
         us.waiting_for_first_beat = false 
         is_playing = true 
-      p_amp_in.time=1
       else
         goto continue
       end
@@ -519,9 +520,9 @@ function update_beat()
       local sample_id=math.floor(playing_pattern_segment)
 
       -- do effects
-      effect_slow=us.effect_slow or math.random()<params:get("effect_slow")
-      effect_stutter=us.effect_stutter or math.random()<params:get("effect_stutter")
-      effect_reverse=us.effect_reverse or math.random()<params:get("effect_reverse")
+      effect_slow=us.effect_slow or math.random()<params:get("effect_slow")/16
+      effect_stutter=us.effect_stutter or math.random()<params:get("effect_stutter")/16
+      effect_reverse=us.effect_reverse or math.random()<params:get("effect_reverse")/16
       if effect_slow then
       	clock.run(function()
       	  is_slowing=true
@@ -770,14 +771,7 @@ function enc(n,d)
   us.update_ui=true
 end
 
-function key(n,z)
-  if n==1 then
-    us.shift=(z==1)
-  elseif n>=2 and z==1 and us.mode==2 and not us.shift then
-    -- effects in chain mode
-    us.effect_stutter=n==2
-    us.effect_reverse=not us.effect_stutter
-  elseif n==3 and z==1 and us.shift then
+function playing_toggle(play)
     -- toggle playback
     parameters_save()
     us.playing_chain=0
@@ -789,7 +783,18 @@ function key(n,z)
       -- toggle playback of this chain only
       us.playing_once=2
     end
-    us.playing=not us.playing
+    us.playing=play
+  end
+
+function key(n,z)
+  if n==1 then
+    us.shift=(z==1)
+  elseif n>=2 and z==1 and us.mode==2 and not us.shift then
+    -- effects in chain mode
+    us.effect_stutter=n==2
+    us.effect_reverse=not us.effect_stutter
+  elseif n==3 and z==1 and us.shift then
+playing_toggle(not us.playing)
   elseif n==2 and z==1 and us.mode==0 then
     if up.samples[us.sample_cur].start==us.waveform_view[1] and up.samples[us.sample_cur].start+up.samples[us.sample_cur].length==us.waveform_view[2] then
       update_waveform_view(0,up.length)
