@@ -215,7 +215,6 @@ function init()
     end
   }
 
-
   params:add_group("save/load",4)
   params:add {
     type='option',
