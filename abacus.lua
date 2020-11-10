@@ -160,6 +160,7 @@ function init()
 
   local specs={}
   specs.AMP=ControlSpec.new(0,1,'lin',0,1,'')
+  specs.KEY=ControlSpec.new(0,254,'lin',1,0,'key')
   specs.FILTER_FREQ=ControlSpec.new(20,20000,'exp',0,20000,'Hz')
   specs.TIME=ControlSpec.new(0,5,'lin',0,1,'s')
   specs.FILTER_RESONANCE=ControlSpec.new(0.05,1,'lin',0,0.25,'')
@@ -169,7 +170,19 @@ function init()
   params:add_separator("abacus")
 
 
-  params:add_group("triggers",5)
+  params:add_group("triggers",10)
+  -- if control key is pressed, it triggers the correspondin trigger
+  params:add{
+    type='control',
+    id='play_start_key',
+    name='start key',
+    controlspec=specs.KEY,
+    action=function(value)
+      -- TODO: save parameters and load parameters for the start keys
+      update_parameters()
+    end
+  }
+
   params:add {
     type='trigger',
     id='play_start',
