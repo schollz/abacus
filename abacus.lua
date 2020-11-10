@@ -1,4 +1,4 @@
--- abacus v0.1.3
+-- abacus v0.2.0
 -- sequence rows of beats
 -- with samples.
 --
@@ -216,7 +216,7 @@ function init()
     end
   }
 
-  params:add_group("effects",5)
+  params:add_group("effects",6)
   params:add{
     type='control',
     id='global_rate',
@@ -242,6 +242,15 @@ function init()
     type='control',
     id='effect_reverse',
     name='effect reverse',
+    controlspec=specs.PERCENTAGE,
+    formatter=Formatters.percentage,
+  }
+
+
+  params:add{
+    type='control',
+    id='effect_slow',
+    name='effect slow',
     controlspec=specs.PERCENTAGE,
     formatter=Formatters.percentage,
   }
@@ -362,6 +371,7 @@ function update_beat()
   local current_voice=1
   local p=up.patterns[1]
   local current_level=0
+  local is_slowing = false 
   while true do
     clock.sync(1/4)
     if us.playing==false then
@@ -398,9 +408,20 @@ function update_beat()
       local sample_id=math.floor(playing_pattern_segment)
 
       -- do effects
+      effect_slow=us.effect_slow or math.random()<params:get("effect_slow")
       effect_stutter=us.effect_stutter or math.random()<params:get("effect_stutter")
       effect_reverse=us.effect_reverse or math.random()<params:get("effect_reverse")
-      if (effect_stutter or effect_reverse) and us.playing_once==0 then
+      if effect_slow then
+	clock.run(function()
+	  is_slowing=true
+	  local slow_time = clock.get_beat_sec()*(math.random(5))
+	  softcut.rate_slew_time(1,slow_time)
+	  softcut.rate(1,0.5*up.rate+params:get("global_rate"))
+	  clock.sleep(slow_time)
+	  softcut.rate(1,up.rate+params:get("global_rate"))
+	  is_slowing = false
+	end)
+      elseif (effect_stutter or effect_reverse) and us.playing_once==0 and not is_slowing then
         us.effect_on=false
         us.effect_stutter=false
         us.effect_reverse=false
