@@ -161,6 +161,7 @@ function init()
   local specs={}
   specs.AMP=ControlSpec.new(0,1,'lin',0,1,'')
   specs.FILTER_FREQ=ControlSpec.new(20,20000,'exp',0,20000,'Hz')
+  specs.TIME=ControlSpec.new(0,5,'lin',0,1,'s')
   specs.FILTER_RESONANCE=ControlSpec.new(0.05,1,'lin',0,0.25,'')
   specs.PERCENTAGEADD=ControlSpec.new(-1,1,'lin',0.01,0,'%')
   specs.PERCENTAGE=ControlSpec.new(0,1,'lin',0.01,0,'%')
@@ -285,12 +286,12 @@ function init()
 
   -- TODO: add individual parameters for pitching up/down specific samples
 
- params:add_group("crow",3)
+ params:add_group("crow",4)
    params:add {
     type='option',
     id='crow_mode',
     name='crow mode',
-    options={"free","sampling"},
+    options={"free","samples"},
     action=function(value)
       if value == 1 then 
         softcut.loop(4,1)
@@ -304,7 +305,7 @@ function init()
   params:add {
     type='control',
     id='gate_voltage',
-    name='gate voltage',
+    name='gate threshold',
     controlspec=ControlSpec.new(-5,10,'lin',0.01,2,'volts'),
     action=function(value)
       crow.input[1].mode("change",value,0.25,"both")
@@ -315,13 +316,24 @@ function init()
     type='option',
     id='crow_gating',
     name='gating',
-    options={"continuous","once"},
+    options={"once","continuous"},
     action=function(value)
       if value == 1 then 
-        softcut.loop(4,1)
-      else
         softcut.loop(4,0)
+      else
+        softcut.loop(4,1)
       end
+    end
+  }
+
+  params:add {
+    type='control',
+    id='crow_slew1',
+    name='crow slew',
+    controlspec=specs.TIME,
+    action=function(value)
+      softcut.rate_slew_time(4,value)
+      softcut.level_slew_time(4,value)
     end
   }
 
@@ -373,7 +385,6 @@ function init()
   crow.input[2].mode("stream",0.1)
 
   parameters_load(uc.data_dir.."play.json")
-  crow_test()
 end
 
 function initialize_samples()
@@ -467,8 +478,8 @@ function update_beat()
       if effect_slow then
 	clock.run(function()
 	  is_slowing=true
-	  local slow_time = clock.get_beat_sec()*(math.random(5))
-	  softcut.rate_slew_time(1,slow_time)
+	  local slow_time = clock.get_beat_sec()*(math.random(2))
+    softcut.rate_slew_time(1,slow_time)
 	  softcut.rate(1,0.5*up.rate+params:get("global_rate"))
 	  clock.sleep(slow_time)
 	  softcut.rate(1,up.rate+params:get("global_rate"))
@@ -955,11 +966,6 @@ end
 -- crow
 --
 
-function crow_test()
-  process_stream(0)
-  process_change(1)
-end
-
 function process_stream(v)
   if params:get("crow_mode") == 2 then 
     -- sample mode 
@@ -994,10 +1000,11 @@ function process_change(s)
     -- keep playing current sample until gate is off
     if s==1 and us.crow_sample_cur > 0 then 
       softcut.play(4,1)
-      softcut.rate(4,up.rate+params:get("global_rate"))
+      softcut.level(4,1)
       softcut.position(4,up.samples[us.crow_sample_cur].start)
-      softcut.loop(4,0)
+      softcut.rate(4,up.rate+params:get("global_rate"))
       us.update_ui=true
+      softcut.loop(4,params:get("crow_gating")-1)
     else
       softcut.loop(4,0)
     end
@@ -1006,8 +1013,8 @@ function process_change(s)
     if s==1 then 
       softcut.position(4,us.crow_position)
       softcut.play(4,1)
-      softcut.rate(4,up.rate+params:get("global_rate"))
       softcut.level(4,1)
+      softcut.rate(4,up.rate+params:get("global_rate"))
     else
       softcut.rate(4,0)
       softcut.level(4,0)
