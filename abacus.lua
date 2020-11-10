@@ -476,15 +476,15 @@ function update_beat()
       effect_stutter=us.effect_stutter or math.random()<params:get("effect_stutter")
       effect_reverse=us.effect_reverse or math.random()<params:get("effect_reverse")
       if effect_slow then
-	clock.run(function()
-	  is_slowing=true
-	  local slow_time = clock.get_beat_sec()*(math.random(2))
-    softcut.rate_slew_time(1,slow_time)
-	  softcut.rate(1,0.5*up.rate+params:get("global_rate"))
-	  clock.sleep(slow_time)
-	  softcut.rate(1,up.rate+params:get("global_rate"))
-	  is_slowing = false
-	end)
+      	clock.run(function()
+      	  is_slowing=true
+      	  local slow_time = clock.get_beat_sec()*(math.random(2))
+          softcut.rate_slew_time(1,slow_time)
+      	  softcut.rate(1,0.5*up.rate+params:get("global_rate"))
+      	  clock.sleep(slow_time)
+      	  softcut.rate(1,up.rate+params:get("global_rate"))
+      	  is_slowing = false
+      	end)
       elseif (effect_stutter or effect_reverse) and us.playing_once==0 and not is_slowing then
         us.effect_on=false
         us.effect_stutter=false
@@ -492,6 +492,7 @@ function update_beat()
         if us.playing_sampleid>0 then
           local pos=up.samples[us.playing_sampleid].start
           rate=1
+          softcut.loop(3,1)
           if effect_stutter then
             print("stutter")
             softcut.loop(3,1)
@@ -499,7 +500,7 @@ function update_beat()
             softcut.loop_end(3,pos+clock.get_beat_sec()/(64.0/stutter_amount))
             softcut.loop_start(3,pos-clock.get_beat_sec()/(64.0/stutter_amount))
           else
-            softcut.loop_start(3,pos)
+            softcut.loop_start(3,us.playing_loop_end)
             softcut.loop_end(3,us.playing_loop_end)
           end
           if effect_reverse then
