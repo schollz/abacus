@@ -167,6 +167,55 @@ function init()
   specs.PERCENTAGE=ControlSpec.new(0,1,'lin',0.01,0,'%')
 
   params:add_separator("abacus")
+
+
+  params:add_group("triggers",5)
+  params:add {
+    type='trigger',
+    id='play_start',
+    name='start trigger',
+    action=function(value)
+      trigger_play(true)
+    end
+  }
+
+  params:add {
+    type='trigger',
+    id='play_stop',
+    name='stop trigger',
+    action=function(value)
+      trigger_play(false)
+    end
+  }
+
+  params:add {
+    type='trigger',
+    id='effect_slow_trigger',
+    name='slow trigger',
+    action=function(value)
+      us.effect_slow=true
+    end
+  }
+
+  params:add {
+    type='trigger',
+    id='effect_reverse_trigger',
+    name='reverse trigger',
+    action=function(value)
+      us.effect_reverse=true
+    end
+  }
+
+  params:add {
+    type='trigger',
+    id='effect_stutter_trigger',
+    name='stutter trigger',
+    action=function(value)
+      us.effect_stutter=true
+    end
+  }
+
+
   params:add_group("save/load",4)
   params:add {
     type='option',
@@ -500,6 +549,7 @@ function update_beat()
       effect_stutter=us.effect_stutter or math.random()<params:get("effect_stutter")
       effect_reverse=us.effect_reverse or math.random()<params:get("effect_reverse")
       if effect_slow then
+        us.effect_slow=false
         clock.run(function()
           is_slowing=true
           local slow_time=clock.get_beat_sec()*(math.random(2))
@@ -523,8 +573,8 @@ function update_beat()
             local stutter_amount=math.random(4)
             softcut.loop_end(3,pos+clock.get_beat_sec()/(64.0/stutter_amount))
             softcut.loop_start(3,pos-clock.get_beat_sec()/(64.0/stutter_amount))
-          else
-            softcut.loop_start(3,us.playing_loop_end)
+          elseif effect_reverse then
+            softcut.loop_start(3,0)
             softcut.loop_end(3,us.playing_loop_end)
           end
           if effect_reverse then
